@@ -1,1 +1,1 @@
-# tw-snipe-planner
+tw-snipe-planner.js
