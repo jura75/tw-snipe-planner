@@ -17,9 +17,9 @@ javascript:(function(){
     }).html(
         '<h4 style="margin:0 0 8px 0;color:#804000;text-align:center;font-size:14px;font-weight:bold;">Мульти-Планировщик Атак и Снайпов</h4>'+
         '<div style="margin-bottom:6px;"><b style="font-size:11px;">Координаты целей (каждая с новой строки):</b><br>'+
-        '<textarea id="snipeCoord" placeholder="504|454&#10;505|456" style="width:100%;height:60px;box-sizing:border-box;font-size:11px;padding:2px;"></textarea></div>'+
-        '<div style="margin-bottom:6px;"><b style="font-size:11px;">Координаты источника (необязательно):</b><br>'+
-        '<input type="text" id="snipeSource" placeholder="Например: 513|425 (или пусто для всех)" style="width:100%;box-sizing:border-box;font-size:11px;padding:2px;"></div>'+
+        '<textarea id="snipeCoord" placeholder="504|454&#10;505|456" style="width:100%;height:50px;box-sizing:border-box;font-size:11px;padding:2px;"></textarea></div>'+
+        '<div style="margin-bottom:6px;"><b style="font-size:11px;">Координаты источников (каждый с новой строки или пусто для всех):</b><br>'+
+        '<textarea id="snipeSource" placeholder="513|425&#10;514|426" style="width:100%;height:50px;box-sizing:border-box;font-size:11px;padding:2px;"></textarea></div>'+
         '<div style="margin-bottom:6px;display:flex;justify-content:space-between;">'+
         '<div style="width:48%;"><b style="font-size:11px;">Время прихода (ЧЧ:ММ:СС):</b><br><input type="text" id="snipeTime" value="15:00:00" style="width:100%;font-size:11px;text-align:center;"></div>'+
         '<div style="width:48%;"><b style="font-size:11px;">Дата (ДД.ММ.ГГГГ):</b><br><input type="text" id="snipeDate" value="'+srvDate+'" style="width:100%;font-size:11px;text-align:center;"></div>'+
@@ -95,7 +95,7 @@ javascript:(function(){
     $('#snipeCalc').click(function(){
         let st=$('#snipeSt'),
             rawText=$('#snipeCoord').val(),
-            sourceCoord=$('#snipeSource').val().trim(),
+            sourceText=$('#snipeSource').val(),
             tTimeStr=$('#snipeTime').val().trim(),
             tDateStr=$('#snipeDate').val().trim(),
             attackType=$('#snipeType').val();
@@ -122,11 +122,14 @@ javascript:(function(){
             return;
         }
 
-        let allowedSources=[];
-        if(sourceCoord!==''){
-            let matches=sourceCoord.match(/\d{3}\|\d{3}/g);
-            if(matches)allowedSources=matches;
-        }
+        let allowedSources = [];
+        let sourceLines = sourceText.split('\n');
+        sourceLines.forEach(line => {
+            let m = line.match(/\d{3}\|\d{3}/);
+            if(m && !allowedSources.includes(m[0])) {
+                allowedSources.push(m[0]);
+            }
+        });
 
         let [td,tm,ty]=tDateStr.split('.').map(Number),
             [th,tmin,ts]=tTimeStr.split(':').map(Number),
@@ -185,7 +188,7 @@ javascript:(function(){
             });
 
             if(!sources.length){
-                st.html('<span style="color:red;">Деревни-источники не найдены!</span>');
+                st.html('<span style="color:red;">Деревни-источники не найдены или не соответствуют фильтру!</span>');
                 return;
             }
 
