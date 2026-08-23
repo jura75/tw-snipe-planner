@@ -6,7 +6,7 @@ javascript:(function(){
     let p=$('#twSnipe');
     if(p.length){p.toggle();return;}
     
-    let srvDate='22.08.2026';
+    let srvDate='23.08.2026';
     window.twSavedRoutes=window.twSavedRoutes||[];
     
     p=$('<div>').attr('id','twSnipe').css({
@@ -16,16 +16,20 @@ javascript:(function(){
         fontFamily:'Arial',color:'#333'
     }).html(
         '<h4 style="margin:0 0 8px 0;color:#804000;text-align:center;font-size:14px;font-weight:bold;">Мульти-Планировщик Атак и Снайпов</h4>'+
-        '<div style="margin-bottom:6px;"><b style="font-size:11px;">Координаты целей (каждая с новой строки):</b><br>'+
-        '<textarea id="snipeCoord" placeholder="504|454&#10;505|456" style="width:100%;height:50px;box-sizing:border-box;font-size:11px;padding:2px;"></textarea></div>'+
+        '<div style="margin-bottom:6px;"><b style="font-size:11px;">Координаты целей (можно с названиями или из игры):</b><br>'+
+        '<textarea id="snipeCoord" placeholder="Цель 1 512|505&#10;[coord]512|505[/coord]&#10;513|505" style="width:100%;height:50px;box-sizing:border-box;font-size:11px;padding:2px;"></textarea></div>'+
         '<div style="margin-bottom:6px;"><b style="font-size:11px;">Координаты источников (каждый с новой строки или пусто для всех):</b><br>'+
         '<textarea id="snipeSource" placeholder="513|425&#10;514|426" style="width:100%;height:50px;box-sizing:border-box;font-size:11px;padding:2px;"></textarea></div>'+
+        '<div style="margin-bottom:6px;display:flex;align-items:center;background:#dfcca6;padding:4px 6px;border-radius:4px;">'+
+        '<input type="checkbox" id="snipeAutoMatch" checked style="margin-right:6px;cursor:pointer;">'+
+        '<label for="snipeAutoMatch" style="font-size:11px;font-weight:bold;color:#804000;cursor:pointer;">Автоподбор ближайших источников (без дублей)</label>'+
+        '</div>'+
         '<div style="margin-bottom:6px;display:flex;justify-content:space-between;">'+
         '<div style="width:48%;"><b style="font-size:11px;">Время прихода (ЧЧ:ММ:СС):</b><br><input type="text" id="snipeTime" value="15:00:00" style="width:100%;font-size:11px;text-align:center;"></div>'+
         '<div style="width:48%;"><b style="font-size:11px;">Дата (ДД.ММ.ГГГГ):</b><br><input type="text" id="snipeDate" value="'+srvDate+'" style="width:100%;font-size:11px;text-align:center;"></div>'+
         '</div>'+
         '<div style="margin-bottom:6px;display:flex;justify-content:space-between;">'+
-        '<div style="width:48%;"><b style="font-size:11px;">Юнит для скорости:</b><br><select id="snipeUnit" style="width:100%;font-size:11px;"><option value="ram">Таран (30 мин)</option><option value="catapult">Катапульта (30 мин)</option><option value="snob">Дворянин (35 мин)</option><option value="light">ЛК (10 мин)</option><option value="axe">Топор/Меч/Копье (18 мин)</option><option value="sword">Меч (22 мин)</option><option value="spy">Разведчик (9 мин)</option></select></div>'+
+        '<div style="width:48%;"><b style="font-size:11px;">Юнит для скорости:</b><br><select id="snipeUnit" style="width:100%;font-size:11px;"><option value="spear">Копье (18 мин)</option><option value="sword">Меч (22 мин)</option><option value="axe">Топор (18 мин)</option><option value="spy">Лазутчик (9 мин)</option><option value="light">ЛК (10 мин)</option><option value="heavy">ТК (11 мин)</option><option value="ram">Таран (30 мин)</option><option value="catapult">Катапульта (30 мин)</option><option value="knight">Паладин (10 мин)</option><option value="snob">Дворянин (35 мин)</option></select></div>'+
         '<div style="width:48%;"><b style="font-size:11px;">Тип атаки:</b><br><select id="snipeType" style="width:100%;font-size:11px;"><option value="Снайп">Снайп</option><option value="Атака">Атака</option><option value="Спам">Спам</option></select></div>'+
         '</div>'+
         '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-bottom:6px;font-size:10px;text-align:center;">'+
@@ -53,7 +57,14 @@ javascript:(function(){
     );
     $('body').append(p);
 
-    let parseVal=s=>{if(!s)return 0;let m=s.trim().split('/')[0];return parseInt(m.replace(/\D/g,''),10)||0;};
+    let parseUnitVal=s=>{
+        if(!s)return 0;
+        let clean = s.trim().replace(/\./g,'').replace(/\s/g,'');
+        let parts = clean.split('/');
+        let targetStr = parts.length > 1 ? parts[1] : parts[0];
+        return parseInt(targetStr.replace(/\D/g,''),10)||0;
+    };
+
     let speeds={spear:18,sword:22,axe:18,spy:9,light:10,heavy:11,ram:30,catapult:30,knight:10,snob:35};
 
     function updateExportAndUI(){
@@ -68,8 +79,9 @@ javascript:(function(){
         let html='',playerName=game_data.player.name,bbTable='[table]\n[**]ID[||]Ник[||]Тип атаки[||]вид[||]откуда[||]куда[||]время отправки[||]время прихода[||]ссылка[/**]\n';
         window.twSavedRoutes.forEach((item,index)=>{
             let idx=index+1;
+            let targetDisplay = item.targetName ? item.targetName + ' (' + item.targetCoord + ')' : item.targetCoord;
             html+='<div style="border-bottom:1px solid #eee;padding:3px 0;display:flex;justify-content:space-between;align-items:center;">'+
-                  '<span style="font-size:10px;"><b>'+idx+'. '+item.name+'</b> ('+item.coord+') &rarr; '+item.targetCoord+' ['+item.attackType+'] <br><span style="color:#b22222;">Отпр: '+item.sendTimeStr+'</span></span>'+
+                  '<span style="font-size:10px;"><b>'+idx+'. '+item.name+'</b> ('+item.coord+') &rarr; <b style="color:#000080;">Цель: '+targetDisplay+'</b> ['+item.attackType+'] <br><span style="color:#b22222;">Отпр: '+item.sendTimeStr+'</span></span>'+
                   '<button class="delSavedBtn" data-id="'+item.uniqueId+'" style="background:#b71c1c;color:#fff;border:none;padding:2px 6px;cursor:pointer;font-size:9px;border-radius:2px;">Удалить</button>'+
                   '</div>';
             bbTable+='[*]' + idx + '[|]' + playerName + '[|]' + item.attackType + '[|][unit]' + item.unitKey + '[/unit][|][coord]' + item.coord + '[/coord][|][coord]' + item.targetCoord + '[/coord][|][b]' + item.sendTimeStr + '[/b][|]' + item.arrTimeStr + '[|][url=' + item.placeUrl + ']Rally point[/url][/*]\n';
@@ -98,22 +110,26 @@ javascript:(function(){
             sourceText=$('#snipeSource').val(),
             tTimeStr=$('#snipeTime').val().trim(),
             tDateStr=$('#snipeDate').val().trim(),
-            attackType=$('#snipeType').val();
+            attackType=$('#snipeType').val(),
+            isAutoMatch=$('#snipeAutoMatch').is(':checked'),
+            unitKey=$('#snipeUnit').val();
 
+        // Поддерживаем дублирующиеся строки целей (каждая строчка обрабатывается отдельно)
         let targets = [];
         let lines = rawText.split('\n');
         lines.forEach(line => {
             let m = line.match(/\d{3}\|\d{3}/);
             if(m) {
                 let coord = m[0];
-                if(!targets.some(t => t.coord === coord)) {
-                    let parts = coord.split('|');
-                    targets.push({
-                        coord: coord,
-                        x: parseInt(parts[0], 10),
-                        y: parseInt(parts[1], 10)
-                    });
-                }
+                let parts = coord.split('|');
+                let cleanLine = line.replace(/\[\/?coord\]/g, '').replace(/\[\/?b\]/g, '');
+                let namePart = cleanLine.replace(coord, '').replace(/[\(\)]/g, '').trim();
+                targets.push({
+                    coord: coord,
+                    name: namePart || '',
+                    x: parseInt(parts[0], 10),
+                    y: parseInt(parts[1], 10)
+                });
             }
         });
 
@@ -140,8 +156,7 @@ javascript:(function(){
             return;
         }
 
-        let unitKey=$('#snipeUnit').val(),
-            speedMin=speeds[unitKey]||30;
+        let speedMin=speeds[unitKey]||30;
 
         let template={
             spear:parseInt($('#uSpear').val(),10)||0,
@@ -172,17 +187,18 @@ javascript:(function(){
                 let curCoordStr=vCoordsMatch[0];
                 if(allowedSources.length>0&&!allowedSources.includes(curCoordStr))return;
                 let cParts=curCoordStr.split('|'),vX=parseInt(cParts[0],10),vY=parseInt(cParts[1],10),tds=$(this).find('td');
+                
                 let uData={
-                    spear:parseVal(tds.filter('.unit-item-spear').text()||tds.eq(2).text()),
-                    sword:parseVal(tds.filter('.unit-item-sword').text()||tds.eq(3).text()),
-                    axe:parseVal(tds.filter('.unit-item-axe').text()||tds.eq(4).text()),
-                    spy:parseVal(tds.filter('.unit-item-spy').text()||tds.eq(5).text()),
-                    light:parseVal(tds.filter('.unit-item-light').text()||tds.eq(6).text()),
-                    heavy:parseVal(tds.filter('.unit-item-heavy').text()||tds.eq(7).text()),
-                    ram:parseVal(tds.filter('.unit-item-ram').text()||tds.eq(8).text()),
-                    catapult:parseVal(tds.filter('.unit-item-catapult').text()||tds.eq(9).text()),
-                    knight:parseVal(tds.filter('.unit-item-knight').text()||tds.eq(10).text()),
-                    snob:parseVal(tds.filter('.unit-item-snob').text()||tds.eq(11).text())
+                    spear:parseUnitVal(tds.filter('.unit-item-spear').text()||tds.eq(2).text()),
+                    sword:parseUnitVal(tds.filter('.unit-item-sword').text()||tds.eq(3).text()),
+                    axe:parseUnitVal(tds.filter('.unit-item-axe').text()||tds.eq(4).text()),
+                    spy:parseUnitVal(tds.filter('.unit-item-spy').text()||tds.eq(5).text()),
+                    light:parseUnitVal(tds.filter('.unit-item-light').text()||tds.eq(6).text()),
+                    heavy:parseUnitVal(tds.filter('.unit-item-heavy').text()||tds.eq(7).text()),
+                    ram:parseUnitVal(tds.filter('.unit-item-ram').text()||tds.eq(8).text()),
+                    catapult:parseUnitVal(tds.filter('.unit-item-catapult').text()||tds.eq(9).text()),
+                    knight:parseUnitVal(tds.filter('.unit-item-knight').text()||tds.eq(10).text()),
+                    snob:parseUnitVal(tds.filter('.unit-item-snob').text()||tds.eq(11).text())
                 };
                 sources.push({id:vId,name:name,x:vX,y:vY,coord:curCoordStr,units:uData});
             });
@@ -192,38 +208,81 @@ javascript:(function(){
                 return;
             }
 
-            let allRoutes=[];
-            sources.forEach(v=>{
-                let hasE=true;
+            let validSources = sources.filter(v => {
                 for(let u in template){
-                    if(v.units[u]<template[u]){hasE=false;break;}
+                    if(v.units[u] < template[u]) return false;
                 }
-                if(!hasE)return;
-                targets.forEach(t=>{
-                    let dist=Math.sqrt(Math.pow(v.x-t.x,2)+Math.pow(v.y-t.y,2));
-                    let sendDate=new Date(targetDate-(dist*speedMin*60*1000));
-                    allRoutes.push({source:v,target:t,dist:dist,sendDate:sendDate});
-                });
+                if(v.units[unitKey] < template[unitKey]) return false;
+                return true;
             });
 
-            if(!allRoutes.length){
-                st.html('<span style="color:red;">Нет вариантов под заданные войска для указанных целей!</span>');
+            if(!validSources.length){
+                st.html('<span style="color:red;">Нет деревень, удовлетворяющих шаблону войск (проверьте количество выбранного юнита)!</span>');
                 return;
             }
 
-            allRoutes.sort((a,b)=>a.sendDate-b.sendDate);
+            let finalRoutes = [];
+            let nowTime = Date.now();
+
+            let allPairs = [];
+            validSources.forEach(v => {
+                targets.forEach(t => {
+                    let dist = Math.sqrt(Math.pow(v.x-t.x,2)+Math.pow(v.y-t.y,2));
+                    let sendDate = new Date(targetDate-(dist*speedMin*60*1000));
+                    allPairs.push({source:v, target:t, dist:dist, sendDate:sendDate});
+                });
+            });
+
+            allPairs.sort((a,b)=>a.sendDate-b.sendDate);
+
+            if (isAutoMatch) {
+                let usedSources = new Set();
+                let usedTargets = new Set();
+
+                allPairs.forEach(pair => {
+                    if(pair.sendDate.getTime() < nowTime) return;
+
+                    if(!usedSources.has(pair.source.id) && !usedTargets.has(pair.target.coord)){
+                        usedSources.add(pair.source.id);
+                        usedTargets.add(pair.target.coord);
+                        finalRoutes.push(pair);
+                    }
+                });
+            } else {
+                // Без автоподбора: источнику ЗАПРЕЩЕНО повторяться (одна деревня-источник бьет только 1 раз за весь расчет).
+                // При этом на одну и ту же цель могут прилетать атаки с разных источников.
+                let usedSources = new Set();
+
+                allPairs.forEach(pair => {
+                    if(pair.sendDate.getTime() < nowTime) return;
+
+                    if(!usedSources.has(pair.source.id)){
+                        usedSources.add(pair.source.id);
+                        finalRoutes.push(pair);
+                    }
+                });
+            }
+
+            if(!finalRoutes.length){
+                st.html('<span style="color:red;">Нет актуальных вариантов (время отправки всех рассчитанных приказов уже прошло)!</span>');
+                return;
+            }
+
+            finalRoutes.sort((a,b)=>a.sendDate-b.sendDate);
             let html='',addedCount=0;
             
-            allRoutes.forEach(item=>{
+            finalRoutes.forEach(item=>{
                 let v=item.source,t=item.target;
                 addedCount++;
                 let sd=item.sendDate;
                 let sendTimeStr=('0'+sd.getDate()).slice(-2)+'.'+('0'+(sd.getMonth()+1)).slice(-2)+'.'+sd.getFullYear()+' '+('0'+sd.getHours()).slice(-2)+':'+('0'+sd.getMinutes()).slice(-2)+':'+('0'+sd.getSeconds()).slice(-2);
                 let placeUrl=window.location.origin+window.location.pathname.substring(0,window.location.pathname.lastIndexOf('/')+1)+'game.php?'+(game_data.player.sitter>0?'t='+game_data.player.id+'&':'')+'village='+v.id+'&screen=place&x='+t.x+'&y='+t.y;
                 
+                let targetDisplay = t.name ? t.name + ' (' + t.coord + ')' : t.coord;
+
                 let routeObj={
                     uniqueId:'r_'+v.id+'_'+t.coord.replace('|','_')+'_'+Date.now()+'_'+Math.floor(Math.random()*1000),
-                    name:v.name,coord:v.coord,targetCoord:t.coord,attackType:attackType,
+                    name:v.name,coord:v.coord,targetCoord:t.coord,targetName:t.name,attackType:attackType,
                     unitKey:unitKey,sendTimestamp:sd.getTime(),sendTimeStr:sendTimeStr,
                     arrTimeStr:('0'+td).slice(-2)+'.'+('0'+tm).slice(-2)+'.'+ty+' '+('0'+th).slice(-2)+':'+('0'+tmin).slice(-2)+':'+('0'+ts).slice(-2),
                     placeUrl:placeUrl
@@ -232,7 +291,7 @@ javascript:(function(){
                 if(addedCount<=50){
                     let safeRouteData=JSON.stringify(routeObj).replace(/"/g,'&quot;');
                     html+='<div style="border-bottom:1px solid #dfcca6;padding:4px 0;display:flex;justify-content:space-between;align-items:center;">'+
-                          '<span style="font-size:10px;"><b>'+v.name+'</b> ('+v.coord+') &rarr; <b style="color:#000080;">Цель: '+t.coord+'</b><br><b style="color:#b22222;">Отправка: '+sendTimeStr+'</b></span>'+
+                          '<span style="font-size:10px;"><b>'+v.name+'</b> ('+v.coord+') &rarr; <b style="color:#000080;">Цель: '+targetDisplay+'</b><br><b style="color:#b22222;">Отправка: '+sendTimeStr+'</b></span>'+
                           '<div style="display:flex;gap:3px;">'+
                           '<button class="saveOneRoute" data-route="'+safeRouteData+'" style="background:#2e7d32;color:#fff;border:none;padding:3px 6px;cursor:pointer;font-size:10px;font-weight:bold;border-radius:3px;">Сохранить</button>'+
                           '<a href="'+placeUrl+'" target="_blank" style="background:#804000;color:#fff;text-decoration:none;padding:3px 6px;border-radius:3px;font-weight:bold;font-size:10px;">Перейти</a>'+
@@ -241,7 +300,7 @@ javascript:(function(){
                 }
             });
 
-            st.html('<b>Найдено вариантов: '+addedCount+'</b> (показано до 50):<br>'+html);
+            st.html('<b>Найдено актуальных вариантов: '+addedCount+'</b> (показано до 50):<br>'+html);
         });
     });
 
