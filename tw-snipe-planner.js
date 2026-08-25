@@ -14,7 +14,7 @@ javascript:(function(){
     } catch(e){}
 
     window.twSavedRoutes = cachedData.savedRoutes || [];
-    window.lastCalculatedRoutes = [];
+    window.lastCalculatedRoutes = cachedData.lastCalculatedRoutes || [];
     
     p=$('<div>').attr('id','twSnipe').css({
         position:'fixed',top:'60px',right:'20px',zIndex:999999,
@@ -55,9 +55,24 @@ javascript:(function(){
         '</div>'+
         '</div>'+
 
+        '<div style="margin-bottom:6px;background:#e9dcbc;padding:5px;border-radius:4px;font-size:11px;">'+
+        '<div style="display:flex;align-items:center;margin-bottom:4px;">'+
+        '<input type="checkbox" id="noNightSend" checked style="margin-right:6px;cursor:pointer;">'+
+        '<label for="noNightSend" style="font-weight:bold;color:#804000;cursor:pointer;">Исключать отправку ночью</label>'+
+        '</div>'+
+        '<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">'+
+        '<span>С:</span><input type="text" id="nightStart" value="00:00" style="width:60px;text-align:center;font-size:11px;padding:2px;">'+
+        '<span>до:</span><input type="text" id="nightEnd" value="06:00" style="width:60px;text-align:center;font-size:11px;padding:2px;">'+
+        '</div>'+
+        '<div style="display:flex;align-items:center;border-top:1px dashed #d1c29b;padding-top:4px;">'+
+        '<input type="checkbox" id="skipAlreadySavedTargets" checked style="margin-right:6px;cursor:pointer;">'+
+        '<label for="skipAlreadySavedTargets" style="font-weight:bold;color:#804000;cursor:pointer;">Не дублировать цели (если уже есть в сохраненных)</label>'+
+        '</div>'+
+        '</div>'+
+
         '<div style="margin-bottom:6px;display:flex;justify-content:space-between;">'+
         '<div style="width:48%;"><b style="font-size:11px;">Юнит для скорости:</b><br><select id="snipeUnit" style="width:100%;font-size:11px;"><option value="spear">Копье (18 мин)</option><option value="sword">Меч (22 мин)</option><option value="axe">Топор (18 мин)</option><option value="spy">Лазутчик (9 мин)</option><option value="light">ЛК (10 мин)</option><option value="heavy">ТК (11 мин)</option><option value="ram">Таран (30 мин)</option><option value="catapult">Катапульта (30 мин)</option><option value="knight">Паладин (10 мин)</option><option value="snob">Дворянин (35 мин)</option></select></div>'+
-        '<div style="width:48%;"><b style="font-size:11px;">Тип атаки:</b><br><select id="snipeType" style="width:100%;font-size:11px;"><option value="Снайп">Снайп</option><option value="Атака">Атака</option><option value="Спам">Спам</option></select></div>'+
+        '<div style="width:48%;"><b style="font-size:11px;">Тип атаки:</b><br><select id="snipeType" style="width:100%;font-size:11px;"><option value="Снайп">Снайп</option><option value="Атака">Атака</option><option value="2 двора">2 двора</option><option value="4 двора">4 двора</option><option value="Раскатка">Раскатка</option><option value="Спам">Спам</option></select></div>'+
         '</div>'+
         '<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:3px;margin-bottom:6px;font-size:10px;text-align:center;">'+
         '<div>Коп: <input type="number" id="uSpear" value="0" style="width:100%;text-align:center;"></div>'+
@@ -75,7 +90,11 @@ javascript:(function(){
         '<button id="snipeCalc" style="flex:2;background:#804000;color:#fff;border:none;padding:6px;font-weight:bold;cursor:pointer;font-size:11px;border-radius:3px;">Рассчитать варианты</button>'+
         '<button id="clearCacheBtn" style="flex:1;background:#b71c1c;color:#fff;border:none;padding:6px;font-weight:bold;cursor:pointer;font-size:11px;border-radius:3px;" title="Сбросить все сохраненные данные и поля">Очистить кеш</button>'+
         '</div>'+
+        
+        '<div style="margin-top:6px;display:flex;justify-content:space-between;align-items:center;">'+
         '<b style="font-size:11px;color:#804000;">Найденные варианты:</b>'+
+        '<button id="clearCalculatedBtn" style="background:#b71c1c;color:#fff;border:none;padding:2px 6px;font-size:9px;cursor:pointer;border-radius:3px;">Очистить найденные</button>'+
+        '</div>'+
         '<div id="snipeSt" style="font-size:11px;background:#fff;padding:5px;border:1px solid #dfcca6;min-height:50px;max-height:130px;overflow-y:auto;margin-top:2px;">Укажите параметры и нажмите расчет.</div>'+
         
         '<div style="margin-top:6px;display:flex;justify-content:space-between;align-items:center;">'+
@@ -107,6 +126,12 @@ javascript:(function(){
     if(cachedData.attackType) $('#snipeType').val(cachedData.attackType);
     if(cachedData.autoMatch !== undefined) $('#snipeAutoMatch').prop('checked', cachedData.autoMatch);
     if(cachedData.coordMode !== undefined) $('#snipeCoordMode').prop('checked', cachedData.coordMode);
+    
+    if(cachedData.noNightSend !== undefined) $('#noNightSend').prop('checked', cachedData.noNightSend);
+    if(cachedData.nightStart) $('#nightStart').val(cachedData.nightStart);
+    if(cachedData.nightEnd) $('#nightEnd').val(cachedData.nightEnd);
+    if(cachedData.skipAlreadySavedTargets !== undefined) $('#skipAlreadySavedTargets').prop('checked', cachedData.skipAlreadySavedTargets);
+
     if(cachedData.intervalMode !== undefined) {
         $('#snipeIntervalMode').prop('checked', cachedData.intervalMode);
         if(cachedData.intervalMode) {
@@ -134,6 +159,10 @@ javascript:(function(){
             autoMatch: $('#snipeAutoMatch').is(':checked'),
             coordMode: $('#snipeCoordMode').is(':checked'),
             intervalMode: $('#snipeIntervalMode').is(':checked'),
+            noNightSend: $('#noNightSend').is(':checked'),
+            nightStart: $('#nightStart').val(),
+            nightEnd: $('#nightEnd').val(),
+            skipAlreadySavedTargets: $('#skipAlreadySavedTargets').is(':checked'),
             units: {
                 spear: $('#uSpear').val(),
                 sword: $('#uSword').val(),
@@ -146,9 +175,14 @@ javascript:(function(){
                 knight: $('#uKnight').val(),
                 snob: $('#uSnob').val()
             },
-            savedRoutes: window.twSavedRoutes
+            savedRoutes: window.twSavedRoutes,
+            lastCalculatedRoutes: window.lastCalculatedRoutes
         };
         localStorage.setItem('twSnipeCache', JSON.stringify(state));
+    }
+
+    if(window.lastCalculatedRoutes && window.lastCalculatedRoutes.length > 0) {
+        renderCalculatedUI(window.lastCalculatedRoutes);
     }
 
     $('#twSnipe').on('input change', 'input, textarea, select', function(){
@@ -172,6 +206,12 @@ javascript:(function(){
         window.lastCalculatedRoutes = [];
         updateExportAndUI();
         $('#snipeSt').html('Кеш очищен.');
+    });
+
+    $('#clearCalculatedBtn').click(function(){
+        window.lastCalculatedRoutes = [];
+        saveStateToCache();
+        $('#snipeSt').html('Укажите параметры и нажмите расчет.');
     });
 
     let parseUnitVal=s=>{
@@ -276,6 +316,12 @@ javascript:(function(){
         return results;
     }
 
+    function timeToSec(tStr) {
+        let p = tStr.split(':');
+        if (p.length < 2) return 0;
+        return parseInt(p[0], 10)*3600 + parseInt(p[1], 10)*60 + (p[2] ? parseInt(p[2], 10) : 0);
+    }
+
     $('#snipeCalc').click(function(){
         let st=$('#snipeSt'),
             rawText=$('#snipeCoord').val(),
@@ -295,6 +341,17 @@ javascript:(function(){
         if(targets.length === 0){
             st.html('<span style="color:red;">Введите хотя бы одну корректную координату цели (формат XXX|YYY)!</span>');
             return;
+        }
+
+        let skipSaved = $('#skipAlreadySavedTargets').is(':checked');
+        if (skipSaved && window.twSavedRoutes && window.twSavedRoutes.length > 0) {
+            let savedTargetCoords = new Set(window.twSavedRoutes.map(r => r.targetCoord));
+            targets = targets.filter(t => !savedTargetCoords.has(t.coord));
+            
+            if(targets.length === 0){
+                st.html('<span style="color:red;">Все введенные цели уже есть в сохраненных маршрутах! (Снимите галочку «Не дублировать цели», если нужно пересчитать их).</span>');
+                return;
+            }
         }
 
         let parsedSources = parseCoordsFromText(sourceText);
@@ -421,11 +478,24 @@ javascript:(function(){
         let nowTime = Date.now();
         let allPairs = [];
 
+        let useNoNight = $('#noNightSend').is(':checked');
+        let nStartSec = timeToSec($('#nightStart').val());
+        let nEndSec = timeToSec($('#nightEnd').val());
+
         sources.forEach(v => {
             targets.forEach(t => {
                 let dist = Math.sqrt(Math.pow(v.x-t.x,2)+Math.pow(v.y-t.y,2));
                 arrivalTimes.forEach(arrTime => {
                     let sendDate = new Date(arrTime-(dist*speedMin*60*1000));
+                    
+                    if (useNoNight) {
+                        let sendSec = sendDate.getHours() * 3600 + sendDate.getMinutes() * 60 + sendDate.getSeconds();
+                        let isNight = (nStartSec < nEndSec) ? 
+                            (sendSec >= nStartSec && sendSec <= nEndSec) : 
+                            (sendSec >= nStartSec || sendSec <= nEndSec);
+                        if (isNight) return;
+                    }
+
                     allPairs.push({source:v, target:t, dist:dist, sendDate:sendDate, arrTime: arrTime});
                 });
             });
@@ -458,25 +528,21 @@ javascript:(function(){
         }
 
         if(!finalRoutes.length){
-            st.html('<span style="color:red;">Нет актуальных вариантов (время отправки всех рассчитанных приказов уже прошло)!</span>');
+            st.html('<span style="color:red;">Нет актуальных вариантов (или все отсечены фильтрами / прошли по времени)!</span>');
             return;
         }
 
         finalRoutes.sort((a,b)=>a.sendDate-b.sendDate);
         window.lastCalculatedRoutes = [];
-        let html='',addedCount=0;
         
         finalRoutes.forEach(item=>{
             let v=item.source,t=item.target;
-            addedCount++;
             let sd=item.sendDate;
             let ad=new Date(item.arrTime);
             let sendTimeStr=('0'+sd.getDate()).slice(-2)+'.'+('0'+(sd.getMonth()+1)).slice(-2)+'.'+sd.getFullYear()+' '+('0'+sd.getHours()).slice(-2)+':'+('0'+sd.getMinutes()).slice(-2)+':'+('0'+sd.getSeconds()).slice(-2);
             let arrTimeStr=('0'+ad.getDate()).slice(-2)+'.'+('0'+(ad.getMonth()+1)).slice(-2)+'.'+ad.getFullYear()+' '+('0'+ad.getHours()).slice(-2)+':'+('0'+ad.getMinutes()).slice(-2)+':'+('0'+ad.getSeconds()).slice(-2);
             
             let placeUrl=window.location.origin+window.location.pathname.substring(0,window.location.pathname.lastIndexOf('/')+1)+'game.php?'+(game_data.player.sitter>0?'t='+game_data.player.id+'&':'')+'village='+v.id+'&screen=place&x='+t.x+'&y='+t.y;
-            
-            let targetDisplay = t.name ? t.name + ' (' + t.coord + ')' : t.coord;
 
             let routeObj={
                 uniqueId:'r_'+v.id+'_'+t.coord.replace('|','_')+'_'+item.arrTime+'_'+Math.floor(Math.random()*1000),
@@ -487,20 +553,32 @@ javascript:(function(){
             };
 
             window.lastCalculatedRoutes.push(routeObj);
+        });
 
+        renderCalculatedUI(window.lastCalculatedRoutes);
+    }
+
+    function renderCalculatedUI(routesArray) {
+        let st=$('#snipeSt');
+        let html='', addedCount=0;
+
+        routesArray.forEach(routeObj=>{
+            addedCount++;
             if(addedCount<=50){
                 let safeRouteData=JSON.stringify(routeObj).replace(/"/g,'&quot;');
+                let targetDisplay = routeObj.targetName ? routeObj.targetName + ' (' + routeObj.targetCoord + ')' : routeObj.targetCoord;
                 html+='<div style="border-bottom:1px solid #dfcca6;padding:4px 0;display:flex;justify-content:space-between;align-items:center;">'+
-                      '<span style="font-size:10px;"><b>'+v.name+'</b> ('+v.coord+') &rarr; <b style="color:#000080;">Цель: '+targetDisplay+'</b><br><b style="color:#b22222;">Отпр: '+sendTimeStr+'</b> | Прих: '+arrTimeStr+'</span>'+
+                      '<span style="font-size:10px;"><b>'+routeObj.name+'</b> ('+routeObj.coord+') &rarr; <b style="color:#000080;">Цель: '+targetDisplay+'</b><br><b style="color:#b22222;">Отпр: '+routeObj.sendTimeStr+'</b> | Прих: '+routeObj.arrTimeStr+'</span>'+
                       '<div style="display:flex;gap:3px;">'+
                       '<button class="saveOneRoute" data-route="'+safeRouteData+'" style="background:#2e7d32;color:#fff;border:none;padding:3px 6px;cursor:pointer;font-size:10px;font-weight:bold;border-radius:3px;">Сохранить</button>'+
-                      '<a href="'+placeUrl+'" target="_blank" style="background:#804000;color:#fff;text-decoration:none;padding:3px 6px;border-radius:3px;font-weight:bold;font-size:10px;">Перейти</a>'+
+                      '<a href="'+routeObj.placeUrl+'" target="_blank" style="background:#804000;color:#fff;text-decoration:none;padding:3px 6px;border-radius:3px;font-weight:bold;font-size:10px;">Перейти</a>'+
                       '</div>'+
                       '</div>';
             }
         });
 
         st.html('<b>Найдено актуальных вариантов: '+addedCount+'</b> (показано до 50):<br>'+html);
+        saveStateToCache();
     }
 
     $(document).on('click','.saveOneRoute',function(){
