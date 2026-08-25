@@ -6,33 +6,60 @@ javascript:(function(){
     let p=$('#twSnipe');
     if(p.length){p.toggle();return;}
     
-    let srvDate='23.08.2026';
-    window.twSavedRoutes=window.twSavedRoutes||[];
+    let srvDate='25.08.2026';
+    
+    let cachedData = {};
+    try {
+        cachedData = JSON.parse(localStorage.getItem('twSnipeCache') || '{}');
+    } catch(e){}
+
+    window.twSavedRoutes = cachedData.savedRoutes || [];
+    window.lastCalculatedRoutes = [];
     
     p=$('<div>').attr('id','twSnipe').css({
         position:'fixed',top:'60px',right:'20px',zIndex:999999,
         background:'#f4ebd0',border:'3px solid #804000',borderRadius:'8px',
-        padding:'10px',width:'470px',maxHeight:'90vh',overflowY:'auto',
+        padding:'10px',width:'490px',maxHeight:'90vh',overflowY:'auto',
         fontFamily:'Arial',color:'#333'
     }).html(
         '<h4 style="margin:0 0 8px 0;color:#804000;text-align:center;font-size:14px;font-weight:bold;">Мульти-Планировщик Атак и Снайпов</h4>'+
-        '<div style="margin-bottom:6px;"><b style="font-size:11px;">Координаты целей (можно с названиями или из игры):</b><br>'+
-        '<textarea id="snipeCoord" placeholder="Цель 1 512|505&#10;[coord]512|505[/coord]&#10;513|505" style="width:100%;height:50px;box-sizing:border-box;font-size:11px;padding:2px;"></textarea></div>'+
-        '<div style="margin-bottom:6px;"><b style="font-size:11px;">Координаты источников (каждый с новой строки или пусто для всех):</b><br>'+
-        '<textarea id="snipeSource" placeholder="513|425&#10;514|426" style="width:100%;height:50px;box-sizing:border-box;font-size:11px;padding:2px;"></textarea></div>'+
-        '<div style="margin-bottom:6px;display:flex;align-items:center;background:#dfcca6;padding:4px 6px;border-radius:4px;">'+
+        '<div style="margin-bottom:6px;"><b style="font-size:11px;">Координаты целей (можно текстом, списком, BB-кодом):</b><br>'+
+        '<textarea id="snipeCoord" placeholder="Цель 1 512|505&#10;[coord]512|505[/coord]&#10;или целый кусок текста" style="width:100%;height:50px;box-sizing:border-box;font-size:11px;padding:2px;"></textarea></div>'+
+        
+        '<div style="margin-bottom:6px;"><b style="font-size:11px;">Координаты источников (можно текстом, списком или пусто для всех):</b><br>'+
+        '<textarea id="snipeSource" placeholder="513|425 514|426 или текст с координатами" style="width:100%;height:45px;box-sizing:border-box;font-size:11px;padding:2px;"></textarea></div>'+
+
+        '<div style="margin-bottom:6px;display:flex;flex-direction:column;gap:4px;background:#dfcca6;padding:5px;border-radius:4px;">'+
+        '<div style="display:flex;align-items:center;">'+
         '<input type="checkbox" id="snipeAutoMatch" checked style="margin-right:6px;cursor:pointer;">'+
         '<label for="snipeAutoMatch" style="font-size:11px;font-weight:bold;color:#804000;cursor:pointer;">Автоподбор ближайших источников (без дублей)</label>'+
         '</div>'+
-        '<div style="margin-bottom:6px;display:flex;justify-content:space-between;">'+
-        '<div style="width:48%;"><b style="font-size:11px;">Время прихода (ЧЧ:ММ:СС):</b><br><input type="text" id="snipeTime" value="15:00:00" style="width:100%;font-size:11px;text-align:center;"></div>'+
-        '<div style="width:48%;"><b style="font-size:11px;">Дата (ДД.ММ.ГГГГ):</b><br><input type="text" id="snipeDate" value="'+srvDate+'" style="width:100%;font-size:11px;text-align:center;"></div>'+
+        '<div style="display:flex;align-items:center;">'+
+        '<input type="checkbox" id="snipeCoordMode" style="margin-right:6px;cursor:pointer;">'+
+        '<label for="snipeCoordMode" style="font-size:11px;font-weight:bold;color:#804000;cursor:pointer;">Считать строго по введенным координатам источников (без привязки к аккаунту)</label>'+
         '</div>'+
+        '</div>'+
+
+        '<div style="margin-bottom:6px;background:#eae3cc;padding:5px;border-radius:4px;">'+
+        '<div style="display:flex;align-items:center;margin-bottom:4px;">'+
+        '<input type="checkbox" id="snipeIntervalMode" style="margin-right:6px;cursor:pointer;">'+
+        '<label for="snipeIntervalMode" style="font-size:11px;font-weight:bold;color:#804000;cursor:pointer;">Интервальный поиск прихода</label>'+
+        '</div>'+
+        '<div style="display:flex;justify-content:space-between;margin-bottom:4px;">'+
+        '<div style="width:48%;"><b style="font-size:10px;" id="lblTimeFrom">Время прихода (ЧЧ:ММ:СС):</b><br><input type="text" id="snipeTime" value="15:00:00" style="width:100%;font-size:11px;text-align:center;"></div>'+
+        '<div style="width:48%;"><b style="font-size:10px;">Дата (ДД.ММ.ГГГГ):</b><br><input type="text" id="snipeDate" value="'+srvDate+'" style="width:100%;font-size:11px;text-align:center;"></div>'+
+        '</div>'+
+        '<div id="intervalBlock" style="display:none;justify-content:space-between;">'+
+        '<div style="width:48%;"><b style="font-size:10px;">Время прихода ПО (ЧЧ:ММ:СС):</b><br><input type="text" id="snipeTimeEnd" value="18:00:00" style="width:100%;font-size:11px;text-align:center;"></div>'+
+        '<div style="width:48%;"><b style="font-size:10px;">Шаг интервала (мин):</b><br><input type="number" id="snipeStep" value="5" style="width:100%;font-size:11px;text-align:center;" min="1"></div>'+
+        '</div>'+
+        '</div>'+
+
         '<div style="margin-bottom:6px;display:flex;justify-content:space-between;">'+
         '<div style="width:48%;"><b style="font-size:11px;">Юнит для скорости:</b><br><select id="snipeUnit" style="width:100%;font-size:11px;"><option value="spear">Копье (18 мин)</option><option value="sword">Меч (22 мин)</option><option value="axe">Топор (18 мин)</option><option value="spy">Лазутчик (9 мин)</option><option value="light">ЛК (10 мин)</option><option value="heavy">ТК (11 мин)</option><option value="ram">Таран (30 мин)</option><option value="catapult">Катапульта (30 мин)</option><option value="knight">Паладин (10 мин)</option><option value="snob">Дворянин (35 мин)</option></select></div>'+
         '<div style="width:48%;"><b style="font-size:11px;">Тип атаки:</b><br><select id="snipeType" style="width:100%;font-size:11px;"><option value="Снайп">Снайп</option><option value="Атака">Атака</option><option value="Спам">Спам</option></select></div>'+
         '</div>'+
-        '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-bottom:6px;font-size:10px;text-align:center;">'+
+        '<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:3px;margin-bottom:6px;font-size:10px;text-align:center;">'+
         '<div>Коп: <input type="number" id="uSpear" value="0" style="width:100%;text-align:center;"></div>'+
         '<div>Меч: <input type="number" id="uSword" value="0" style="width:100%;text-align:center;"></div>'+
         '<div>Топор: <input type="number" id="uAxe" value="0" style="width:100%;text-align:center;"></div>'+
@@ -44,18 +71,108 @@ javascript:(function(){
         '<div>Паладин: <input type="number" id="uKnight" value="0" style="width:100%;text-align:center;"></div>'+
         '<div>Дворянин: <input type="number" id="uSnob" value="0" style="width:100%;text-align:center;"></div>'+
         '</div>'+
-        '<div style="display:grid;grid-template-columns:1fr;gap:4px;margin-bottom:4px;">'+
-        '<button id="snipeCalc" style="background:#804000;color:#fff;border:none;padding:6px;font-weight:bold;cursor:pointer;font-size:11px;border-radius:3px;">Рассчитать варианты</button>'+
+        '<div style="display:flex;gap:4px;margin-bottom:4px;">'+
+        '<button id="snipeCalc" style="flex:2;background:#804000;color:#fff;border:none;padding:6px;font-weight:bold;cursor:pointer;font-size:11px;border-radius:3px;">Рассчитать варианты</button>'+
+        '<button id="clearCacheBtn" style="flex:1;background:#b71c1c;color:#fff;border:none;padding:6px;font-weight:bold;cursor:pointer;font-size:11px;border-radius:3px;" title="Сбросить все сохраненные данные и поля">Очистить кеш</button>'+
         '</div>'+
         '<b style="font-size:11px;color:#804000;">Найденные варианты:</b>'+
         '<div id="snipeSt" style="font-size:11px;background:#fff;padding:5px;border:1px solid #dfcca6;min-height:50px;max-height:130px;overflow-y:auto;margin-top:2px;">Укажите параметры и нажмите расчет.</div>'+
-        '<div style="margin-top:6px;"><b style="font-size:11px;color:#804000;">Сохраненные маршруты (<span id="savedCount">0</span>):</b>'+
-        '<button id="clearAllSaved" style="float:right;background:#b71c1c;color:#fff;border:none;padding:2px 6px;font-size:9px;cursor:pointer;border-radius:3px;">Очистить все</button></div>'+
+        
+        '<div style="margin-top:6px;display:flex;justify-content:space-between;align-items:center;">'+
+        '<b style="font-size:11px;color:#804000;">Сохраненные маршруты (<span id="savedCount">0</span>):</b>'+
+        '<div>'+
+        '<button id="saveAllRoutes" style="background:#2e7d32;color:#fff;border:none;padding:2px 6px;font-size:9px;cursor:pointer;border-radius:3px;margin-right:4px;">Сохранить всё</button>'+
+        '<button id="clearAllSaved" style="background:#b71c1c;color:#fff;border:none;padding:2px 6px;font-size:9px;cursor:pointer;border-radius:3px;">Очистить все</button>'+
+        '</div>'+
+        '</div>'+
         '<div id="savedListContainer" style="font-size:11px;background:#fff;padding:5px;border:1px solid #dfcca6;min-height:50px;max-height:110px;overflow-y:auto;margin-top:2px;">Пока ничего не сохранено.</div>'+
-        '<div style="margin-top:6px;"><b style="font-size:11px;color:#804000;">BB-код итоговой таблицы для блокнота:</b><br><textarea id="snipeExport" style="width:100%;height:70px;font-size:10px;box-sizing:border-box;margin-top:2px;" placeholder="Здесь появится итоговый BB-код..."></textarea></div>'+
+        
+        '<div style="margin-top:6px;display:flex;justify-content:space-between;align-items:center;">'+
+        '<b style="font-size:11px;color:#804000;">BB-код итоговой таблицы для блокнота:</b>'+
+        '<button id="copyExportBtn" style="background:#804000;color:#fff;border:none;padding:2px 6px;font-size:9px;cursor:pointer;border-radius:3px;">Скопировать всё</button>'+
+        '</div>'+
+        '<textarea id="snipeExport" style="width:100%;height:60px;font-size:10px;box-sizing:border-box;margin-top:2px;" placeholder="Здесь появится итоговый BB-код..."></textarea>'+
+        
         '<div style="text-align:right;margin-top:4px;"><span onclick="$(\'#twSnipe\').hide()" style="cursor:pointer;color:#804000;font-size:11px;font-weight:bold;">[ Закрыть панель ]</span></div>'
     );
     $('body').append(p);
+
+    if(cachedData.targets) $('#snipeCoord').val(cachedData.targets);
+    if(cachedData.sources) $('#snipeSource').val(cachedData.sources);
+    if(cachedData.time) $('#snipeTime').val(cachedData.time);
+    if(cachedData.timeEnd) $('#snipeTimeEnd').val(cachedData.timeEnd);
+    if(cachedData.date) $('#snipeDate').val(cachedData.date);
+    if(cachedData.step) $('#snipeStep').val(cachedData.step);
+    if(cachedData.unit) $('#snipeUnit').val(cachedData.unit);
+    if(cachedData.attackType) $('#snipeType').val(cachedData.attackType);
+    if(cachedData.autoMatch !== undefined) $('#snipeAutoMatch').prop('checked', cachedData.autoMatch);
+    if(cachedData.coordMode !== undefined) $('#snipeCoordMode').prop('checked', cachedData.coordMode);
+    if(cachedData.intervalMode !== undefined) {
+        $('#snipeIntervalMode').prop('checked', cachedData.intervalMode);
+        if(cachedData.intervalMode) {
+            $('#intervalBlock').css('display','flex');
+            $('#lblTimeFrom').text('Время прихода С (ЧЧ:ММ:СС):');
+        }
+    }
+    
+    if(cachedData.units) {
+        for(let u in cachedData.units) {
+            $('#u'+u.charAt(0).toUpperCase()+u.slice(1)).val(cachedData.units[u]);
+        }
+    }
+
+    function saveStateToCache() {
+        let state = {
+            targets: $('#snipeCoord').val(),
+            sources: $('#snipeSource').val(),
+            time: $('#snipeTime').val(),
+            timeEnd: $('#snipeTimeEnd').val(),
+            date: $('#snipeDate').val(),
+            step: $('#snipeStep').val(),
+            unit: $('#snipeUnit').val(),
+            attackType: $('#snipeType').val(),
+            autoMatch: $('#snipeAutoMatch').is(':checked'),
+            coordMode: $('#snipeCoordMode').is(':checked'),
+            intervalMode: $('#snipeIntervalMode').is(':checked'),
+            units: {
+                spear: $('#uSpear').val(),
+                sword: $('#uSword').val(),
+                axe: $('#uAxe').val(),
+                spy: $('#uSpy').val(),
+                light: $('#uLight').val(),
+                heavy: $('#uHeavy').val(),
+                ram: $('#uRam').val(),
+                catapult: $('#uCatapult').val(),
+                knight: $('#uKnight').val(),
+                snob: $('#uSnob').val()
+            },
+            savedRoutes: window.twSavedRoutes
+        };
+        localStorage.setItem('twSnipeCache', JSON.stringify(state));
+    }
+
+    $('#twSnipe').on('input change', 'input, textarea, select', function(){
+        saveStateToCache();
+    });
+
+    $('#snipeIntervalMode').change(function(){
+        if($(this).is(':checked')) {
+            $('#intervalBlock').css('display','flex');
+            $('#lblTimeFrom').text('Время прихода С (ЧЧ:ММ:СС):');
+        } else {
+            $('#intervalBlock').css('display','none');
+            $('#lblTimeFrom').text('Время прихода (ЧЧ:ММ:СС):');
+        }
+    });
+
+    $('#clearCacheBtn').click(function(){
+        localStorage.removeItem('twSnipeCache');
+        $('#snipeCoord, #snipeSource').val('');
+        window.twSavedRoutes = [];
+        window.lastCalculatedRoutes = [];
+        updateExportAndUI();
+        $('#snipeSt').html('Кеш очищен.');
+    });
 
     let parseUnitVal=s=>{
         if(!s)return 0;
@@ -70,6 +187,7 @@ javascript:(function(){
     function updateExportAndUI(){
         let container=$('#savedListContainer'),countSpan=$('#savedCount');
         countSpan.text(window.twSavedRoutes.length);
+        saveStateToCache();
         if(window.twSavedRoutes.length===0){
             container.html('Пока ничего не сохранено.');
             $('#snipeExport').val('');
@@ -98,54 +216,89 @@ javascript:(function(){
     });
 
     $('#clearAllSaved').click(function(){
-        if(confirm('Очистить все сохраненные маршруты?')){
-            window.twSavedRoutes=[];
-            updateExportAndUI();
-        }
+        window.twSavedRoutes=[];
+        updateExportAndUI();
     });
+
+    $('#saveAllRoutes').click(function(){
+        if(!window.lastCalculatedRoutes || window.lastCalculatedRoutes.length === 0){
+            return;
+        }
+        window.lastCalculatedRoutes.forEach(routeObj => {
+            let exists = window.twSavedRoutes.some(item => item.coord === routeObj.coord && item.sendTimestamp === routeObj.sendTimestamp && item.targetCoord === routeObj.targetCoord);
+            if(!exists){
+                window.twSavedRoutes.push(routeObj);
+            }
+        });
+        updateExportAndUI();
+    });
+
+    $('#copyExportBtn').click(function(){
+        let textarea = document.getElementById('snipeExport');
+        if(!textarea.value.trim()){
+            return;
+        }
+        textarea.select();
+        try {
+            document.execCommand('copy');
+            let btn = $(this);
+            let oldText = btn.text();
+            btn.text('Скопировано!').css('background','#2e7d32');
+            setTimeout(()=>{ btn.text(oldText).css('background','#804000'); }, 1500);
+        } catch(err) {}
+    });
+
+    function parseCoordsFromText(text) {
+        let results = [];
+        let cleanText = text.replace(/\[\/?coord\]/g, '').replace(/\[\/?b\]/g, '').replace(/\[\/?table\]/g, '');
+        let regex = /(\d{3}\|\d{3})/g;
+        let match;
+        let lastIndex = 0;
+
+        while ((match = regex.exec(cleanText)) !== null) {
+            let coord = match[1];
+            let parts = coord.split('|');
+            let chunkBefore = cleanText.substring(lastIndex, match.index);
+            let namePart = chunkBefore.replace(/[\(\)]/g, ' ').trim();
+            let words = namePart.split(/\s+/);
+            let villageName = words.slice(-3).join(' ').replace(/^(K\d+\s*)+/, '').trim();
+
+            if (!results.some(r => r.coord === coord)) {
+                results.push({
+                    coord: coord,
+                    name: villageName || '',
+                    x: parseInt(parts[0], 10),
+                    y: parseInt(parts[1], 10)
+                });
+            }
+            lastIndex = regex.lastIndex;
+        }
+        return results;
+    }
 
     $('#snipeCalc').click(function(){
         let st=$('#snipeSt'),
             rawText=$('#snipeCoord').val(),
             sourceText=$('#snipeSource').val(),
             tTimeStr=$('#snipeTime').val().trim(),
+            tTimeEndStr=$('#snipeTimeEnd').val().trim(),
             tDateStr=$('#snipeDate').val().trim(),
             attackType=$('#snipeType').val(),
             isAutoMatch=$('#snipeAutoMatch').is(':checked'),
+            isCoordMode=$('#snipeCoordMode').is(':checked'),
+            isInterval=$('#snipeIntervalMode').is(':checked'),
+            stepMinutes=parseFloat($('#snipeStep').val())||1,
             unitKey=$('#snipeUnit').val();
 
-        // Поддерживаем дублирующиеся строки целей (каждая строчка обрабатывается отдельно)
-        let targets = [];
-        let lines = rawText.split('\n');
-        lines.forEach(line => {
-            let m = line.match(/\d{3}\|\d{3}/);
-            if(m) {
-                let coord = m[0];
-                let parts = coord.split('|');
-                let cleanLine = line.replace(/\[\/?coord\]/g, '').replace(/\[\/?b\]/g, '');
-                let namePart = cleanLine.replace(coord, '').replace(/[\(\)]/g, '').trim();
-                targets.push({
-                    coord: coord,
-                    name: namePart || '',
-                    x: parseInt(parts[0], 10),
-                    y: parseInt(parts[1], 10)
-                });
-            }
-        });
+        let targets = parseCoordsFromText(rawText);
 
         if(targets.length === 0){
             st.html('<span style="color:red;">Введите хотя бы одну корректную координату цели (формат XXX|YYY)!</span>');
             return;
         }
 
-        let allowedSources = [];
-        let sourceLines = sourceText.split('\n');
-        sourceLines.forEach(line => {
-            let m = line.match(/\d{3}\|\d{3}/);
-            if(m && !allowedSources.includes(m[0])) {
-                allowedSources.push(m[0]);
-            }
-        });
+        let parsedSources = parseCoordsFromText(sourceText);
+        let allowedSources = parsedSources.map(s => s.coord);
 
         let [td,tm,ty]=tDateStr.split('.').map(Number),
             [th,tmin,ts]=tTimeStr.split(':').map(Number),
@@ -154,6 +307,23 @@ javascript:(function(){
         if(isNaN(targetDate)){
             st.html('<span style="color:red;">Ошибка в формате даты или времени!</span>');
             return;
+        }
+
+        let arrivalTimes = [targetDate];
+        if(isInterval) {
+            let [thEnd,tminEnd,tsEnd]=tTimeEndStr.split(':').map(Number);
+            let targetDateEnd = new Date(ty,tm-1,td,thEnd,tminEnd,tsEnd).getTime();
+            if(isNaN(targetDateEnd) || targetDateEnd <= targetDate) {
+                st.html('<span style="color:red;">Некорректное время окончания интервала!</span>');
+                return;
+            }
+            arrivalTimes = [];
+            let currT = targetDate;
+            let stepMs = stepMinutes * 60 * 1000;
+            while(currT <= targetDateEnd) {
+                arrivalTimes.push(currT);
+                currT += stepMs;
+            }
         }
 
         let speedMin=speeds[unitKey]||30;
@@ -171,9 +341,30 @@ javascript:(function(){
             snob:parseInt($('#uSnob').val(),10)||0
         };
 
-        let sfx=game_data.player.sitter>0?'game.php?t='+game_data.player.id+'&':'game.php?';
-        st.html('Расчет по '+targets.length+' целям...');
+        st.html('Расчет вариантов...');
 
+        if (isCoordMode) {
+            if(allowedSources.length === 0) {
+                st.html('<span style="color:red;">Включен режим расчета по координатам, но поле «Координаты источников» пустое!</span>');
+                return;
+            }
+
+            let sources = allowedSources.map(coord => {
+                let p = coord.split('|');
+                return {
+                    id: coord.replace('|', '_'),
+                    name: 'Источник',
+                    x: parseInt(p[0], 10),
+                    y: parseInt(p[1], 10),
+                    coord: coord
+                };
+            });
+
+            processPairsAndRender(sources, targets, arrivalTimes, speedMin, st, isAutoMatch, attackType, unitKey);
+            return;
+        }
+
+        let sfx=game_data.player.sitter>0?'game.php?t='+game_data.player.id+'&':'game.php?';
         $.get(sfx+'screen=overview_villages&mode=units&page=-1&',function(page){
             let rows=$(page).find('tr').filter(function(){return $(this).find('.quickedit-vn').length>0;});
             let sources=[];
@@ -217,92 +408,100 @@ javascript:(function(){
             });
 
             if(!validSources.length){
-                st.html('<span style="color:red;">Нет деревень, удовлетворяющих шаблону войск (проверьте количество выбранного юнита)!</span>');
+                st.html('<span style="color:red;">Нет деревень, удовлетворяющих шаблону войск!</span>');
                 return;
             }
 
-            let finalRoutes = [];
-            let nowTime = Date.now();
-
-            let allPairs = [];
-            validSources.forEach(v => {
-                targets.forEach(t => {
-                    let dist = Math.sqrt(Math.pow(v.x-t.x,2)+Math.pow(v.y-t.y,2));
-                    let sendDate = new Date(targetDate-(dist*speedMin*60*1000));
-                    allPairs.push({source:v, target:t, dist:dist, sendDate:sendDate});
-                });
-            });
-
-            allPairs.sort((a,b)=>a.sendDate-b.sendDate);
-
-            if (isAutoMatch) {
-                let usedSources = new Set();
-                let usedTargets = new Set();
-
-                allPairs.forEach(pair => {
-                    if(pair.sendDate.getTime() < nowTime) return;
-
-                    if(!usedSources.has(pair.source.id) && !usedTargets.has(pair.target.coord)){
-                        usedSources.add(pair.source.id);
-                        usedTargets.add(pair.target.coord);
-                        finalRoutes.push(pair);
-                    }
-                });
-            } else {
-                // Без автоподбора: источнику ЗАПРЕЩЕНО повторяться (одна деревня-источник бьет только 1 раз за весь расчет).
-                // При этом на одну и ту же цель могут прилетать атаки с разных источников.
-                let usedSources = new Set();
-
-                allPairs.forEach(pair => {
-                    if(pair.sendDate.getTime() < nowTime) return;
-
-                    if(!usedSources.has(pair.source.id)){
-                        usedSources.add(pair.source.id);
-                        finalRoutes.push(pair);
-                    }
-                });
-            }
-
-            if(!finalRoutes.length){
-                st.html('<span style="color:red;">Нет актуальных вариантов (время отправки всех рассчитанных приказов уже прошло)!</span>');
-                return;
-            }
-
-            finalRoutes.sort((a,b)=>a.sendDate-b.sendDate);
-            let html='',addedCount=0;
-            
-            finalRoutes.forEach(item=>{
-                let v=item.source,t=item.target;
-                addedCount++;
-                let sd=item.sendDate;
-                let sendTimeStr=('0'+sd.getDate()).slice(-2)+'.'+('0'+(sd.getMonth()+1)).slice(-2)+'.'+sd.getFullYear()+' '+('0'+sd.getHours()).slice(-2)+':'+('0'+sd.getMinutes()).slice(-2)+':'+('0'+sd.getSeconds()).slice(-2);
-                let placeUrl=window.location.origin+window.location.pathname.substring(0,window.location.pathname.lastIndexOf('/')+1)+'game.php?'+(game_data.player.sitter>0?'t='+game_data.player.id+'&':'')+'village='+v.id+'&screen=place&x='+t.x+'&y='+t.y;
-                
-                let targetDisplay = t.name ? t.name + ' (' + t.coord + ')' : t.coord;
-
-                let routeObj={
-                    uniqueId:'r_'+v.id+'_'+t.coord.replace('|','_')+'_'+Date.now()+'_'+Math.floor(Math.random()*1000),
-                    name:v.name,coord:v.coord,targetCoord:t.coord,targetName:t.name,attackType:attackType,
-                    unitKey:unitKey,sendTimestamp:sd.getTime(),sendTimeStr:sendTimeStr,
-                    arrTimeStr:('0'+td).slice(-2)+'.'+('0'+tm).slice(-2)+'.'+ty+' '+('0'+th).slice(-2)+':'+('0'+tmin).slice(-2)+':'+('0'+ts).slice(-2),
-                    placeUrl:placeUrl
-                };
-
-                if(addedCount<=50){
-                    let safeRouteData=JSON.stringify(routeObj).replace(/"/g,'&quot;');
-                    html+='<div style="border-bottom:1px solid #dfcca6;padding:4px 0;display:flex;justify-content:space-between;align-items:center;">'+
-                          '<span style="font-size:10px;"><b>'+v.name+'</b> ('+v.coord+') &rarr; <b style="color:#000080;">Цель: '+targetDisplay+'</b><br><b style="color:#b22222;">Отправка: '+sendTimeStr+'</b></span>'+
-                          '<div style="display:flex;gap:3px;">'+
-                          '<button class="saveOneRoute" data-route="'+safeRouteData+'" style="background:#2e7d32;color:#fff;border:none;padding:3px 6px;cursor:pointer;font-size:10px;font-weight:bold;border-radius:3px;">Сохранить</button>'+
-                          '<a href="'+placeUrl+'" target="_blank" style="background:#804000;color:#fff;text-decoration:none;padding:3px 6px;border-radius:3px;font-weight:bold;font-size:10px;">Перейти</a>'+
-                          '</div>'+
-                          '</div>';
-                }
-            });
-
-            st.html('<b>Найдено актуальных вариантов: '+addedCount+'</b> (показано до 50):<br>'+html);
+            processPairsAndRender(validSources, targets, arrivalTimes, speedMin, st, isAutoMatch, attackType, unitKey);
         });
     });
+
+    function processPairsAndRender(sources, targets, arrivalTimes, speedMin, st, isAutoMatch, attackType, unitKey) {
+        let finalRoutes = [];
+        let nowTime = Date.now();
+        let allPairs = [];
+
+        sources.forEach(v => {
+            targets.forEach(t => {
+                let dist = Math.sqrt(Math.pow(v.x-t.x,2)+Math.pow(v.y-t.y,2));
+                arrivalTimes.forEach(arrTime => {
+                    let sendDate = new Date(arrTime-(dist*speedMin*60*1000));
+                    allPairs.push({source:v, target:t, dist:dist, sendDate:sendDate, arrTime: arrTime});
+                });
+            });
+        });
+
+        allPairs.sort((a,b)=>a.sendDate-b.sendDate);
+
+        if (isAutoMatch) {
+            let usedSources = new Set();
+            let usedTargets = new Set();
+
+            allPairs.forEach(pair => {
+                if(pair.sendDate.getTime() < nowTime) return;
+                let targetKey = pair.target.coord + '_' + pair.arrTime;
+                if(!usedSources.has(pair.source.id) && !usedTargets.has(targetKey)){
+                    usedSources.add(pair.source.id);
+                    usedTargets.add(targetKey);
+                    finalRoutes.push(pair);
+                }
+            });
+        } else {
+            let usedSources = new Set();
+            allPairs.forEach(pair => {
+                if(pair.sendDate.getTime() < nowTime) return;
+                if(!usedSources.has(pair.source.id)){
+                    usedSources.add(pair.source.id);
+                    finalRoutes.push(pair);
+                }
+            });
+        }
+
+        if(!finalRoutes.length){
+            st.html('<span style="color:red;">Нет актуальных вариантов (время отправки всех рассчитанных приказов уже прошло)!</span>');
+            return;
+        }
+
+        finalRoutes.sort((a,b)=>a.sendDate-b.sendDate);
+        window.lastCalculatedRoutes = [];
+        let html='',addedCount=0;
+        
+        finalRoutes.forEach(item=>{
+            let v=item.source,t=item.target;
+            addedCount++;
+            let sd=item.sendDate;
+            let ad=new Date(item.arrTime);
+            let sendTimeStr=('0'+sd.getDate()).slice(-2)+'.'+('0'+(sd.getMonth()+1)).slice(-2)+'.'+sd.getFullYear()+' '+('0'+sd.getHours()).slice(-2)+':'+('0'+sd.getMinutes()).slice(-2)+':'+('0'+sd.getSeconds()).slice(-2);
+            let arrTimeStr=('0'+ad.getDate()).slice(-2)+'.'+('0'+(ad.getMonth()+1)).slice(-2)+'.'+ad.getFullYear()+' '+('0'+ad.getHours()).slice(-2)+':'+('0'+ad.getMinutes()).slice(-2)+':'+('0'+ad.getSeconds()).slice(-2);
+            
+            let placeUrl=window.location.origin+window.location.pathname.substring(0,window.location.pathname.lastIndexOf('/')+1)+'game.php?'+(game_data.player.sitter>0?'t='+game_data.player.id+'&':'')+'village='+v.id+'&screen=place&x='+t.x+'&y='+t.y;
+            
+            let targetDisplay = t.name ? t.name + ' (' + t.coord + ')' : t.coord;
+
+            let routeObj={
+                uniqueId:'r_'+v.id+'_'+t.coord.replace('|','_')+'_'+item.arrTime+'_'+Math.floor(Math.random()*1000),
+                name:v.name,coord:v.coord,targetCoord:t.coord,targetName:t.name,attackType:attackType,
+                unitKey:unitKey,sendTimestamp:sd.getTime(),sendTimeStr:sendTimeStr,
+                arrTimeStr:arrTimeStr,
+                placeUrl:placeUrl
+            };
+
+            window.lastCalculatedRoutes.push(routeObj);
+
+            if(addedCount<=50){
+                let safeRouteData=JSON.stringify(routeObj).replace(/"/g,'&quot;');
+                html+='<div style="border-bottom:1px solid #dfcca6;padding:4px 0;display:flex;justify-content:space-between;align-items:center;">'+
+                      '<span style="font-size:10px;"><b>'+v.name+'</b> ('+v.coord+') &rarr; <b style="color:#000080;">Цель: '+targetDisplay+'</b><br><b style="color:#b22222;">Отпр: '+sendTimeStr+'</b> | Прих: '+arrTimeStr+'</span>'+
+                      '<div style="display:flex;gap:3px;">'+
+                      '<button class="saveOneRoute" data-route="'+safeRouteData+'" style="background:#2e7d32;color:#fff;border:none;padding:3px 6px;cursor:pointer;font-size:10px;font-weight:bold;border-radius:3px;">Сохранить</button>'+
+                      '<a href="'+placeUrl+'" target="_blank" style="background:#804000;color:#fff;text-decoration:none;padding:3px 6px;border-radius:3px;font-weight:bold;font-size:10px;">Перейти</a>'+
+                      '</div>'+
+                      '</div>';
+            }
+        });
+
+        st.html('<b>Найдено актуальных вариантов: '+addedCount+'</b> (показано до 50):<br>'+html);
+    }
 
     $(document).on('click','.saveOneRoute',function(){
         let rawData=$(this).attr('data-route').replace(/&quot;/g,'"'),routeObj=JSON.parse(rawData);
@@ -311,8 +510,6 @@ javascript:(function(){
             window.twSavedRoutes.push(routeObj);
             updateExportAndUI();
             $(this).css('background','#555').text('Сохранено!').prop('disabled',true);
-        }else{
-            alert('Этот маршрут уже добавлен в сохраненные!');
         }
     });
 
