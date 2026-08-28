@@ -6,7 +6,7 @@ javascript:(function(){
     let p=$('#twSnipe');
     if(p.length){p.toggle();return;}
     
-    let srvDate='25.08.2026';
+    let srvDate='28.08.2026';
     
     let cachedData = {};
     try {
@@ -26,17 +26,22 @@ javascript:(function(){
         '<div style="margin-bottom:6px;"><b style="font-size:11px;">Координаты целей (можно текстом, списком, BB-кодом):</b><br>'+
         '<textarea id="snipeCoord" placeholder="Цель 1 512|505&#10;[coord]512|505[/coord]&#10;или целый кусок текста" style="width:100%;height:50px;box-sizing:border-box;font-size:11px;padding:2px;"></textarea></div>'+
         
+        '<div style="margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;background:#eae3cc;padding:4px 6px;border-radius:4px;">'+
+        '<label for="snipeAttacksPerTarget" style="font-size:11px;font-weight:bold;color:#804000;">Количество атак на одну цель:</label>'+
+        '<input type="number" id="snipeAttacksPerTarget" value="1" min="1" max="50" style="width:60px;font-size:11px;text-align:center;padding:2px;">'+
+        '</div>'+
+
         '<div style="margin-bottom:6px;"><b style="font-size:11px;">Координаты источников (можно текстом, списком или пусто для всех):</b><br>'+
         '<textarea id="snipeSource" placeholder="513|425 514|426 или текст с координатами" style="width:100%;height:45px;box-sizing:border-box;font-size:11px;padding:2px;"></textarea></div>'+
 
         '<div style="margin-bottom:6px;display:flex;flex-direction:column;gap:4px;background:#dfcca6;padding:5px;border-radius:4px;">'+
         '<div style="display:flex;align-items:center;">'+
         '<input type="checkbox" id="snipeAutoMatch" checked style="margin-right:6px;cursor:pointer;">'+
-        '<label for="snipeAutoMatch" style="font-size:11px;font-weight:bold;color:#804000;cursor:pointer;">Автоподбор ближайших источников (без дублей)</label>'+
+        '<label for="snipeAutoMatch" style="font-size:11px;font-weight:bold;color:#804000;cursor:pointer;">Автоподбор ближайших источников</label>'+
         '</div>'+
         '<div style="display:flex;align-items:center;">'+
         '<input type="checkbox" id="snipeCoordMode" style="margin-right:6px;cursor:pointer;">'+
-        '<label for="snipeCoordMode" style="font-size:11px;font-weight:bold;color:#804000;cursor:pointer;">Считать строго по введенным координатам источников (без привязки к аккаунту)</label>'+
+        '<label for="snipeCoordMode" style="font-size:11px;font-weight:bold;color:#804000;cursor:pointer;">Считать строго по введенным координатам источников</label>'+
         '</div>'+
         '</div>'+
 
@@ -64,10 +69,17 @@ javascript:(function(){
         '<span>С:</span><input type="text" id="nightStart" value="00:00" style="width:60px;text-align:center;font-size:11px;padding:2px;">'+
         '<span>до:</span><input type="text" id="nightEnd" value="06:00" style="width:60px;text-align:center;font-size:11px;padding:2px;">'+
         '</div>'+
-        '<div style="display:flex;align-items:center;border-top:1px dashed #d1c29b;padding-top:4px;">'+
+        '<div style="display:flex;align-items:center;border-top:1px dashed #d1c29b;padding-top:4px;margin-bottom:4px;">'+
         '<input type="checkbox" id="skipAlreadySavedTargets" checked style="margin-right:6px;cursor:pointer;">'+
         '<label for="skipAlreadySavedTargets" style="font-weight:bold;color:#804000;cursor:pointer;">Не дублировать цели (если уже есть в сохраненных)</label>'+
         '</div>'+
+        
+        // --- НОВОЕ ПОЛЕ: Максимум атак с одного источника ---
+        '<div style="display:flex;justify-content:space-between;align-items:center;border-top:1px dashed #d1c29b;padding-top:4px;">'+
+        '<label for="snipeAttacksPerSource" style="font-weight:bold;color:#804000;cursor:pointer;">Макс. атак с 1 источника:</label>'+
+        '<input type="number" id="snipeAttacksPerSource" value="1" min="1" max="50" style="width:50px;font-size:11px;text-align:center;padding:2px;">'+
+        '</div>'+
+        // ---------------------------------------------------
         '</div>'+
 
         '<div style="margin-bottom:6px;display:flex;justify-content:space-between;">'+
@@ -111,12 +123,22 @@ javascript:(function(){
         '<button id="copyExportBtn" style="background:#804000;color:#fff;border:none;padding:2px 6px;font-size:9px;cursor:pointer;border-radius:3px;">Скопировать всё</button>'+
         '</div>'+
         '<textarea id="snipeExport" style="width:100%;height:60px;font-size:10px;box-sizing:border-box;margin-top:2px;" placeholder="Здесь появится итоговый BB-код..."></textarea>'+
+
+        '<div style="margin-top:8px;border-top:1px dashed #c9b47a;padding-top:6px;">'+
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">'+
+        '<b style="font-size:11px;color:#804000;">Координаты целей сохраненных маршрутов:</b>'+
+        '<button id="copyTargetCoordsBtn" style="background:#804000;color:#fff;border:none;padding:2px 6px;font-size:9px;cursor:pointer;border-radius:3px;">Собрать цели</button>'+
+        '</div>'+
+        '<textarea id="targetCoordsExport" style="width:100%;height:50px;font-size:10px;box-sizing:border-box;margin-top:2px;" placeholder="Здесь появятся только уникальные координаты целей..."></textarea>'+
+        '</div>'+
         
         '<div style="text-align:right;margin-top:4px;"><span onclick="$(\'#twSnipe\').hide()" style="cursor:pointer;color:#804000;font-size:11px;font-weight:bold;">[ Закрыть панель ]</span></div>'
     );
     $('body').append(p);
 
     if(cachedData.targets) $('#snipeCoord').val(cachedData.targets);
+    if(cachedData.attacksPerTarget !== undefined) $('#snipeAttacksPerTarget').val(cachedData.attacksPerTarget);
+    if(cachedData.attacksPerSource !== undefined) $('#snipeAttacksPerSource').val(cachedData.attacksPerSource);
     if(cachedData.sources) $('#snipeSource').val(cachedData.sources);
     if(cachedData.time) $('#snipeTime').val(cachedData.time);
     if(cachedData.timeEnd) $('#snipeTimeEnd').val(cachedData.timeEnd);
@@ -149,6 +171,8 @@ javascript:(function(){
     function saveStateToCache() {
         let state = {
             targets: $('#snipeCoord').val(),
+            attacksPerTarget: $('#snipeAttacksPerTarget').val(),
+            attacksPerSource: $('#snipeAttacksPerSource').val(),
             sources: $('#snipeSource').val(),
             time: $('#snipeTime').val(),
             timeEnd: $('#snipeTimeEnd').val(),
@@ -201,7 +225,9 @@ javascript:(function(){
 
     $('#clearCacheBtn').click(function(){
         localStorage.removeItem('twSnipeCache');
-        $('#snipeCoord, #snipeSource').val('');
+        $('#snipeCoord, #snipeSource, #targetCoordsExport').val('');
+        $('#snipeAttacksPerTarget').val('1');
+        $('#snipeAttacksPerSource').val('1');
         window.twSavedRoutes = [];
         window.lastCalculatedRoutes = [];
         updateExportAndUI();
@@ -231,6 +257,7 @@ javascript:(function(){
         if(window.twSavedRoutes.length===0){
             container.html('Пока ничего не сохранено.');
             $('#snipeExport').val('');
+            $('#targetCoordsExport').val('');
             return;
         }
         window.twSavedRoutes.sort((a,b)=>a.sendTimestamp-b.sendTimestamp);
@@ -247,7 +274,38 @@ javascript:(function(){
         bbTable+='[/table]';
         container.html(html);
         $('#snipeExport').val(bbTable);
+        updateTargetCoordsOutput();
     }
+
+    function updateTargetCoordsOutput() {
+        let uniqueTargets = [];
+        if (window.twSavedRoutes && window.twSavedRoutes.length > 0) {
+            let targetsSet = new Set();
+            window.twSavedRoutes.forEach(item => {
+                if (item.targetCoord) {
+                    targetsSet.add(item.targetCoord);
+                }
+            });
+            uniqueTargets = Array.from(targetsSet);
+        }
+        $('#targetCoordsExport').val(uniqueTargets.join('\n'));
+    }
+
+    $('#copyTargetCoordsBtn').click(function(){
+        updateTargetCoordsOutput();
+        let textarea = document.getElementById('targetCoordsExport');
+        if(!textarea.value.trim()){
+            return;
+        }
+        textarea.select();
+        try {
+            document.execCommand('copy');
+            let btn = $(this);
+            let oldText = btn.text();
+            btn.text('Собрано!').css('background','#2e7d32');
+            setTimeout(()=>{ btn.text(oldText).css('background','#804000'); }, 1500);
+        } catch(err) {}
+    });
 
     $(document).on('click','.delSavedBtn',function(){
         let uid=$(this).attr('data-id');
@@ -325,6 +383,8 @@ javascript:(function(){
     $('#snipeCalc').click(function(){
         let st=$('#snipeSt'),
             rawText=$('#snipeCoord').val(),
+            attacksPerTarget = parseInt($('#snipeAttacksPerTarget').val(), 10) || 1,
+            attacksPerSource = parseInt($('#snipeAttacksPerSource').val(), 10) || 1,
             sourceText=$('#snipeSource').val(),
             tTimeStr=$('#snipeTime').val().trim(),
             tTimeEndStr=$('#snipeTimeEnd').val().trim(),
@@ -417,7 +477,7 @@ javascript:(function(){
                 };
             });
 
-            processPairsAndRender(sources, targets, arrivalTimes, speedMin, st, isAutoMatch, attackType, unitKey);
+            processPairsAndRender(sources, targets, arrivalTimes, speedMin, st, isAutoMatch, attackType, unitKey, attacksPerTarget, attacksPerSource);
             return;
         }
 
@@ -469,11 +529,11 @@ javascript:(function(){
                 return;
             }
 
-            processPairsAndRender(validSources, targets, arrivalTimes, speedMin, st, isAutoMatch, attackType, unitKey);
+            processPairsAndRender(validSources, targets, arrivalTimes, speedMin, st, isAutoMatch, attackType, unitKey, attacksPerTarget, attacksPerSource);
         });
     });
 
-    function processPairsAndRender(sources, targets, arrivalTimes, speedMin, st, isAutoMatch, attackType, unitKey) {
+    function processPairsAndRender(sources, targets, arrivalTimes, speedMin, st, isAutoMatch, attackType, unitKey, attacksPerTarget, attacksPerSource) {
         let finalRoutes = [];
         let nowTime = Date.now();
         let allPairs = [];
@@ -503,25 +563,32 @@ javascript:(function(){
 
         allPairs.sort((a,b)=>a.sendDate-b.sendDate);
 
-        if (isAutoMatch) {
-            let usedSources = new Set();
-            let usedTargets = new Set();
+        let sourceHitCounts = {};
+        let targetHitCounts = {};
 
+        if (isAutoMatch) {
             allPairs.forEach(pair => {
                 if(pair.sendDate.getTime() < nowTime) return;
-                let targetKey = pair.target.coord + '_' + pair.arrTime;
-                if(!usedSources.has(pair.source.id) && !usedTargets.has(targetKey)){
-                    usedSources.add(pair.source.id);
-                    usedTargets.add(targetKey);
+                let targetKey = pair.target.coord;
+                let sourceKey = pair.source.id;
+                
+                let currentSourceHits = sourceHitCounts[sourceKey] || 0;
+                let currentTargetHits = targetHitCounts[targetKey] || 0;
+
+                if(currentSourceHits < attacksPerSource && currentTargetHits < attacksPerTarget){
+                    sourceHitCounts[sourceKey] = currentSourceHits + 1;
+                    targetHitCounts[targetKey] = currentTargetHits + 1;
                     finalRoutes.push(pair);
                 }
             });
         } else {
-            let usedSources = new Set();
             allPairs.forEach(pair => {
                 if(pair.sendDate.getTime() < nowTime) return;
-                if(!usedSources.has(pair.source.id)){
-                    usedSources.add(pair.source.id);
+                let sourceKey = pair.source.id;
+                let currentSourceHits = sourceHitCounts[sourceKey] || 0;
+
+                if(currentSourceHits < attacksPerSource){
+                    sourceHitCounts[sourceKey] = currentSourceHits + 1;
                     finalRoutes.push(pair);
                 }
             });
