@@ -773,8 +773,8 @@ javascript:(function(){
                 html+='<div style="border-bottom:1px solid #e3d2bd;padding:3px 0;display:flex;justify-content:space-between;align-items:center;">'+
                       '<span style="font-size:9px;"><b>'+routeObj.name+'</b> &rarr; <b>'+targetDisplay+'</b><br><span style="color:#b22222;">Отпр: '+routeObj.sendTimeStr+'</span></span>'+
                       '<div style="display:flex;gap:3px;flex-shrink:0;">'+
-                      '<button class="saveOneRoute" data-route="'+safeRouteData+'" style="background:#2e7d32;color:#fff;border:none;padding:2px 5px;cursor:pointer;font-size:9px;font-weight:bold;border-radius:2px;">💾</button>'+
-                      '<a href="'+routeObj.placeUrl+'" target="_blank" style="background:#8a4500;color:#fff;text-decoration:none;padding:2px 5px;border-radius:2px;font-size:9px;font-weight:bold;display:inline-block;">🚀</a>'+
+                      '<button class="saveOneRoute" data-route="'+safeRouteData+'" style="background:#2e7d32;color:#fff;border:none;padding:2px 4px;cursor:pointer;font-size:8px;font-weight:bold;border-radius:2px;">Сохр.</button>'+
+                      '<a href="'+routeObj.placeUrl+'" target="_blank" style="background:#8a4500;color:#fff;text-decoration:none;padding:2px 4px;border-radius:2px;font-size:8px;font-weight:bold;display:inline-block;">Перейти</a>'+
                       '</div>'+
                       '</div>';
             }
