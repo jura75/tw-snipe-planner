@@ -424,12 +424,13 @@ javascript:(function(){
         window.twSavedRoutes.forEach((item,index)=>{
             let idx=index+1;
             let targetDisplay = item.targetName ? item.targetName + ' (' + item.targetCoord + ')' : item.targetCoord;
-            let ownerName = item.ownerName || game_data.player.name;
+            let sourceOwnerName = item.sourceOwnerName || game_data.player.name;
+            
             html+='<div style="border-bottom:1px solid #eee;padding:2px 0;display:flex;justify-content:space-between;align-items:center;">'+
-                  '<span style="font-size:9px;"><b>'+idx+'. '+item.name+'</b> &rarr; <b>'+targetDisplay+'</b> <span style="color:#b22222;">Отпр: '+item.sendTimeStr+'</span></span>'+
+                  '<span style="font-size:9px;"><b>'+idx+'. '+item.name+' ('+item.coord+')</b> &rarr; <b>'+targetDisplay+'</b> <span style="color:#b22222;">Отпр: '+item.sendTimeStr+'</span></span>'+
                   '<button class="delSavedBtn" data-id="'+item.uniqueId+'" style="background:#d32f2f;color:#fff;border:none;padding:1px 4px;cursor:pointer;font-size:8px;border-radius:2px;">&times;</button>'+
                   '</div>';
-            bbTable+='[*]' + idx + '[|]' + ownerName + '[|]' + item.attackType + '[|][unit]' + item.unitKey + '[/unit][|][coord]' + item.coord + '[/coord][|][coord]' + item.targetCoord + '[/coord][|][b]' + item.sendTimeStr + '[/b][|]' + item.arrTimeStr + '[|][url=' + item.placeUrl + ']Rally point[/url][/*]\n';
+            bbTable+='[*]' + idx + '[|]' + sourceOwnerName + '[|]' + item.attackType + '[|][unit]' + item.unitKey + '[/unit][|][coord]' + item.coord + '[/coord][|][coord]' + item.targetCoord + '[/coord][|][b]' + item.sendTimeStr + '[/b][|]' + item.arrTimeStr + '[|][url=' + item.placeUrl + ']Rally point[/url][/*]\n';
         });
         bbTable+='[/table]';
         container.html(html);
@@ -548,13 +549,14 @@ javascript:(function(){
                     if(!line.trim()) return;
                     let parts = line.split(',');
                     if(parts.length >= 6) {
+                        let vId = parts[0].trim();
+                        let vName = decodeURIComponent(parts[1].replace(/\+/g, ' '));
                         let vX = parseInt(parts[2], 10);
                         let vY = parseInt(parts[3], 10);
-                        let coordKey = vX + '|' + vY;
                         let ownerId = parts[4].trim();
-                        let vName = decodeURIComponent(parts[1].replace(/\+/g, ' '));
+                        let coordKey = vX + '|' + vY;
                         let ownerName = playersMap[ownerId] || game_data.player.name;
-                        villagesMap[coordKey] = { ownerName: ownerName, villageName: vName };
+                        villagesMap[coordKey] = { id: vId, ownerName: ownerName, villageName: vName };
                     }
                 });
             }
@@ -636,12 +638,9 @@ javascript:(function(){
         fetchWorldDataAndRun(function(playersMap, villagesMap) {
             targets.forEach(t => {
                 if (villagesMap[t.coord]) {
-                    t.ownerName = villagesMap[t.coord].ownerName;
                     if (!t.name || t.name === '') {
                         t.name = villagesMap[t.coord].villageName;
                     }
-                } else {
-                    t.ownerName = game_data.player.name;
                 }
             });
 
@@ -652,9 +651,11 @@ javascript:(function(){
                 }
                 let sources = allowedSources.map(coord => {
                     let p = coord.split('|');
-                    let sOwner = (villagesMap[coord] ? villagesMap[coord].ownerName : 'Источник');
-                    let vId = (game_data.village && game_data.village.coord === coord) ? game_data.village.id : '';
-                    return { id: vId, name: sOwner, x: parseInt(p[0], 10), y: parseInt(p[1], 10), coord: coord };
+                    let vData = villagesMap[coord];
+                    let sOwner = vData ? vData.ownerName : game_data.player.name;
+                    let vName = vData ? vData.villageName : 'Деревня';
+                    let vId = vData ? vData.id : '';
+                    return { id: vId, name: vName, ownerName: sOwner, x: parseInt(p[0], 10), y: parseInt(p[1], 10), coord: coord };
                 });
                 
                 if ($('#skipAlreadySavedSources').is(':checked') && window.twSavedRoutes && window.twSavedRoutes.length > 0) {
@@ -662,7 +663,7 @@ javascript:(function(){
                     sources = sources.filter(s => !savedSourceCoords.has(s.coord));
                 }
 
-                processPairsAndRender(sources, targets, arrivalTimes, speedMin, st, isAutoMatch, attackType, unitKey, attacksPerTarget, attacksPerSource);
+                processPairsAndRender(sources, targets, arrivalTimes, speedMin, st, isAutoMatch, attackType, unitKey, attacksPerTarget, attacksPerSource, villagesMap);
                 return;
             }
 
@@ -684,6 +685,8 @@ javascript:(function(){
                     if(allowedSources.length>0&&!allowedSources.includes(curCoordStr))return;
                     let cParts=curCoordStr.split('|'),vX=parseInt(cParts[0],10),vY=parseInt(cParts[1],10),tds=$(this).find('td');
                     
+                    let sOwner = (villagesMap[curCoordStr] ? villagesMap[curCoordStr].ownerName : game_data.player.name);
+
                     let uData={
                         spear:parseUnitVal(tds.filter('.unit-item-spear').text()||tds.eq(2).text()),
                         sword:parseUnitVal(tds.filter('.unit-item-sword').text()||tds.eq(3).text()),
@@ -696,7 +699,7 @@ javascript:(function(){
                         knight:parseUnitVal(tds.filter('.unit-item-knight').text()||tds.eq(10).text()),
                         snob:parseUnitVal(tds.filter('.unit-item-snob').text()||tds.eq(11).text())
                     };
-                    sources.push({id:vId,name:name,x:vX,y:vY,coord:curCoordStr,units:uData});
+                    sources.push({id:vId,name:name,ownerName:sOwner,x:vX,y:vY,coord:curCoordStr,units:uData});
                 });
 
                 if(!sources.length){
@@ -733,12 +736,12 @@ javascript:(function(){
                     return;
                 }
 
-                processPairsAndRender(validSources, targets, arrivalTimes, speedMin, st, isAutoMatch, attackType, unitKey, attacksPerTarget, attacksPerSource);
+                processPairsAndRender(validSources, targets, arrivalTimes, speedMin, st, isAutoMatch, attackType, unitKey, attacksPerTarget, attacksPerSource, villagesMap);
             });
         });
     });
 
-    function processPairsAndRender(sources, targets, arrivalTimes, speedMin, st, isAutoMatch, attackType, unitKey, attacksPerTarget, attacksPerSource) {
+    function processPairsAndRender(sources, targets, arrivalTimes, speedMin, st, isAutoMatch, attackType, unitKey, attacksPerTarget, attacksPerSource, villagesMap) {
         let finalRoutes = [];
         let nowTime = Date.now();
         let allPairs = [];
@@ -772,7 +775,7 @@ javascript:(function(){
         if (isAutoMatch) {
             allPairs.forEach(pair => {
                 if(pair.sendDate.getTime() < nowTime) return;
-                let targetKey = pair.target.coord, sourceKey = pair.source.id;
+                let targetKey = pair.target.coord, sourceKey = pair.source.coord;
                 let currentSourceHits = sourceHitCounts[sourceKey] || 0;
                 let currentTargetHits = targetHitCounts[targetKey] || 0;
 
@@ -785,7 +788,7 @@ javascript:(function(){
         } else {
             allPairs.forEach(pair => {
                 if(pair.sendDate.getTime() < nowTime) return;
-                let sourceKey = pair.source.id;
+                let sourceKey = pair.source.coord;
                 let currentSourceHits = sourceHitCounts[sourceKey] || 0;
                 if(currentSourceHits < attacksPerSource){
                     sourceHitCounts[sourceKey] = currentSourceHits + 1;
@@ -811,12 +814,16 @@ javascript:(function(){
             let sendTimeStr=('0'+sd.getDate()).slice(-2)+'.'+('0'+(sd.getMonth()+1)).slice(-2)+'.'+sd.getFullYear()+' '+('0'+sd.getHours()).slice(-2)+':'+('0'+sd.getMinutes()).slice(-2)+':'+('0'+sd.getSeconds()).slice(-2);
             let arrTimeStr=('0'+ad.getDate()).slice(-2)+'.'+('0'+(ad.getMonth()+1)).slice(-2)+'.'+ad.getFullYear()+' '+('0'+ad.getHours()).slice(-2)+':'+('0'+ad.getMinutes()).slice(-2)+':'+('0'+ad.getSeconds()).slice(-2);
             
-            // Добавлен параметр newdid для гарантированного переключения на деревню-источник
-            let placeUrl = window.location.origin + window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1) + 'game.php?' + sitterParam + 'village=' + v.id + '&newdid=' + v.id + '&screen=place&x=' + t.x + '&y=' + t.y;
+            let villageId = v.id;
+            if (!villageId && villagesMap && villagesMap[v.coord]) {
+                villageId = villagesMap[v.coord].id;
+            }
+            
+            let placeUrl = window.location.origin + window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1) + 'game.php?' + sitterParam + (villageId ? 'village=' + villageId + '&' : '') + 'screen=place&x=' + t.x + '&y=' + t.y;
 
             let routeObj={
-                uniqueId:'r_'+v.id+'_'+t.coord.replace('|','_')+'_'+item.arrTime+'_'+Math.floor(Math.random()*1000),
-                name:v.name,coord:v.coord,targetCoord:t.coord,targetName:t.name,ownerName:t.ownerName || game_data.player.name,attackType:attackType,
+                uniqueId:'r_'+v.coord.replace('|','_')+'_'+t.coord.replace('|','_')+'_'+item.arrTime+'_'+Math.floor(Math.random()*1000),
+                name:v.name,coord:v.coord,targetCoord:t.coord,targetName:t.name,sourceOwnerName:v.ownerName || game_data.player.name,attackType:attackType,
                 unitKey:unitKey,sendTimestamp:sd.getTime(),sendTimeStr:sendTimeStr,arrTimeStr:arrTimeStr,placeUrl:placeUrl
             };
             window.lastCalculatedRoutes.push(routeObj);
@@ -835,8 +842,9 @@ javascript:(function(){
                 let safeRouteData=JSON.stringify(routeObj).replace(/"/g,'&quot;');
                 let targetDisplay = routeObj.targetName ? routeObj.targetName + ' (' + routeObj.targetCoord + ')' : routeObj.targetCoord;
                 
+                // ИСПРАВЛЕНИЕ: Добавлены координаты источника сразу после его названия
                 html+='<div style="border-bottom:1px solid #e3d2bd;padding:3px 0;display:flex;justify-content:space-between;align-items:center;">'+
-                      '<span style="font-size:9px;"><b>'+routeObj.name+'</b> &rarr; <b>'+targetDisplay+'</b> ('+routeObj.ownerName+')<br><span style="color:#b22222;">Отпр: '+routeObj.sendTimeStr+'</span></span>'+
+                      '<span style="font-size:9px;"><b>'+routeObj.name+' ('+routeObj.coord+')</b> &rarr; <b>'+targetDisplay+'</b> ('+routeObj.sourceOwnerName+')<br><span style="color:#b22222;">Отпр: '+routeObj.sendTimeStr+'</span></span>'+
                       '<div style="display:flex;gap:3px;flex-shrink:0;">'+
                       '<button class="saveOneRoute" data-route="'+safeRouteData+'" style="background:#2e7d32;color:#fff;border:none;padding:2px 4px;cursor:pointer;font-size:8px;font-weight:bold;border-radius:2px;">Сохр.</button>'+
                       '<a href="'+routeObj.placeUrl+'" target="_blank" style="background:#8a4500;color:#fff;text-decoration:none;padding:2px 4px;border-radius:2px;font-size:8px;font-weight:bold;display:inline-block;">Перейти</a>'+
