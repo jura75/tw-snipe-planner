@@ -17,11 +17,9 @@ javascript:(function(){
     window.lastCalculatedRoutes = cachedData.lastCalculatedRoutes || [];
     let isMobileMode = cachedData.mobileMode !== undefined ? cachedData.mobileMode : false;
     
-    // Глобальные переменные для кеширования карты мира
     window.twWorldPlayers = window.twWorldPlayers || null;
     window.twWorldVillages = window.twWorldVillages || null;
     
-    // --- ДИНАМИЧЕСКИЙ ДИЗАЙН ---
     function getPanelStyles(mobile) {
         if (mobile) {
             return {
@@ -514,7 +512,6 @@ javascript:(function(){
         return parseInt(p[0], 10)*3600 + parseInt(p[1], 10)*60 + (p[2] ? parseInt(p[2], 10) : 0);
     }
 
-    // --- ФУНКЦИЯ ЗАГРУЗКИ И ПАРСИНГА БАЗЫ МИРА ДЛЯ ОПРЕДЕЛЕНИЯ НИКОВ ---
     function fetchWorldDataAndRun(callback) {
         if (window.twWorldPlayers && window.twWorldVillages) {
             callback(window.twWorldPlayers, window.twWorldVillages);
@@ -637,7 +634,6 @@ javascript:(function(){
         st.html('Загрузка карты и расчет...');
 
         fetchWorldDataAndRun(function(playersMap, villagesMap) {
-            // Обогащаем цели правильными никами владельцев из базы мира
             targets.forEach(t => {
                 if (villagesMap[t.coord]) {
                     t.ownerName = villagesMap[t.coord].ownerName;
@@ -657,7 +653,8 @@ javascript:(function(){
                 let sources = allowedSources.map(coord => {
                     let p = coord.split('|');
                     let sOwner = (villagesMap[coord] ? villagesMap[coord].ownerName : 'Источник');
-                    return { id: coord.replace('|', '_'), name: sOwner, x: parseInt(p[0], 10), y: parseInt(p[1], 10), coord: coord };
+                    let vId = (game_data.village && game_data.village.coord === coord) ? game_data.village.id : '';
+                    return { id: vId, name: sOwner, x: parseInt(p[0], 10), y: parseInt(p[1], 10), coord: coord };
                 });
                 
                 if ($('#skipAlreadySavedSources').is(':checked') && window.twSavedRoutes && window.twSavedRoutes.length > 0) {
@@ -669,7 +666,6 @@ javascript:(function(){
                 return;
             }
 
-            // --- АВТОМАТИЧЕСКОЕ ОПРЕДЕЛЕНИЕ ПРИСМОТРА ИЗ АДРЕСНОЙ СТРОКИ БРАУЗЕРА ---
             let urlParams = new URLSearchParams(window.location.search);
             let sitterParam = urlParams.get('t') ? 't=' + urlParams.get('t') + '&' : '';
             let sfx = 'game.php?' + sitterParam;
@@ -815,7 +811,8 @@ javascript:(function(){
             let sendTimeStr=('0'+sd.getDate()).slice(-2)+'.'+('0'+(sd.getMonth()+1)).slice(-2)+'.'+sd.getFullYear()+' '+('0'+sd.getHours()).slice(-2)+':'+('0'+sd.getMinutes()).slice(-2)+':'+('0'+sd.getSeconds()).slice(-2);
             let arrTimeStr=('0'+ad.getDate()).slice(-2)+'.'+('0'+(ad.getMonth()+1)).slice(-2)+'.'+ad.getFullYear()+' '+('0'+ad.getHours()).slice(-2)+':'+('0'+ad.getMinutes()).slice(-2)+':'+('0'+ad.getSeconds()).slice(-2);
             
-            let placeUrl = window.location.origin + window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1) + 'game.php?' + sitterParam + 'village=' + v.id + '&screen=place&x=' + t.x + '&y=' + t.y;
+            // Добавлен параметр newdid для гарантированного переключения на деревню-источник
+            let placeUrl = window.location.origin + window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1) + 'game.php?' + sitterParam + 'village=' + v.id + '&newdid=' + v.id + '&screen=place&x=' + t.x + '&y=' + t.y;
 
             let routeObj={
                 uniqueId:'r_'+v.id+'_'+t.coord.replace('|','_')+'_'+item.arrTime+'_'+Math.floor(Math.random()*1000),
