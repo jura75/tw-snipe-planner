@@ -17,7 +17,11 @@ javascript:(function(){
     window.lastCalculatedRoutes = cachedData.lastCalculatedRoutes || [];
     let isMobileMode = cachedData.mobileMode !== undefined ? cachedData.mobileMode : false;
     
-    // --- ДИНАМИЧЕСКИЙ ДИЗАЙН (БЕЗ standard resize, управление через JS для ПК) ---
+    // Глобальные переменные для кеширования карты мира
+    window.twWorldPlayers = window.twWorldPlayers || null;
+    window.twWorldVillages = window.twWorldVillages || null;
+    
+    // --- ДИНАМИЧЕСКИЙ ДИЗАЙН ---
     function getPanelStyles(mobile) {
         if (mobile) {
             return {
@@ -47,7 +51,6 @@ javascript:(function(){
         '</div>'+
         '</div>'+
         
-        // --- ПЕРВАЯ СТРОКА: Скорость мира + Атак на цель + Атак с источника ---
         '<div class="row-speed-attacks" style="display:flex;gap:6px;margin-bottom:6px;">'+
         '<div style="flex:1;display:flex;justify-content:space-between;align-items:center;background:#f3eadb;padding:5px 6px;border-radius:5px;border:1px solid #e3d2bd;">'+
         '<label for="worldSpeed" style="font-size:10px;font-weight:600;color:#592c00;">Скорость:</label>'+
@@ -63,7 +66,6 @@ javascript:(function(){
         '</div>'+
         '</div>'+
 
-        // --- ПОЛЯ ВВОДА КООРДИНАТ ---
         '<div id="coordsBlockContainer" style="display:flex;gap:6px;margin-bottom:6px;">'+
         '<div style="flex:1;"><b style="font-size:10px;color:#4a3b2c;">Цели (список / BB):</b><br>'+
         '<textarea id="snipeCoord" placeholder="512|505..." style="width:100%;height:40px;box-sizing:border-box;font-size:10px;padding:3px;border:1px solid #c7b299;border-radius:3px;background:#fff;"></textarea></div>'+
@@ -71,7 +73,6 @@ javascript:(function(){
         '<textarea id="snipeSource" placeholder="513|425..." style="width:100%;height:40px;box-sizing:border-box;font-size:10px;padding:3px;border:1px solid #c7b299;border-radius:3px;background:#fff;"></textarea></div>'+
         '</div>'+
 
-        // --- ЧЕКБОКСЫ РЕЖИМОВ ---
         '<div style="margin-bottom:6px;display:flex;flex-wrap:wrap;gap:8px;background:#ede1cc;padding:5px 8px;border-radius:5px;border:1px solid #d9c7ad;align-items:center;">'+
         '<div style="display:flex;align-items:center;"><input type="checkbox" id="snipeAutoMatch" checked style="margin-right:4px;cursor:pointer;"><label for="snipeAutoMatch" style="font-size:9px;font-weight:600;color:#592c00;cursor:pointer;">Автоподбор</label></div>'+
         '<div style="display:flex;align-items:center;"><input type="checkbox" id="snipeCoordMode" style="margin-right:4px;cursor:pointer;"><label for="snipeCoordMode" style="font-size:9px;font-weight:600;color:#592c00;cursor:pointer;">Строго по списку</label></div>'+
@@ -79,7 +80,6 @@ javascript:(function(){
         '<div style="display:flex;align-items:center;"><input type="checkbox" id="skipAlreadySavedSources" style="margin-right:4px;cursor:pointer;"><label for="skipAlreadySavedSources" style="font-size:9px;font-weight:600;color:#592c00;cursor:pointer;">Без дублей источников</label></div>'+
         '</div>'+
 
-        // --- ВРЕМЯ И ИНТЕРВАЛЫ ---
         '<div style="margin-bottom:6px;background:#f3eadb;padding:6px 8px;border-radius:5px;border:1px solid #e3d2bd;">'+
         '<div style="display:flex;align-items:center;margin-bottom:4px;justify-content:space-between;flex-wrap:wrap;gap:4px;">'+
         '<div style="display:flex;align-items:center;"><input type="checkbox" id="snipeIntervalMode" style="margin-right:4px;cursor:pointer;"><label for="snipeIntervalMode" style="font-size:10px;font-weight:600;color:#592c00;cursor:pointer;">Интервал прихода</label></div>'+
@@ -99,13 +99,11 @@ javascript:(function(){
         '</div>'+
         '</div>'+
 
-        // --- ЮНИТ И ТИП АТАКИ ---
         '<div style="display:flex;gap:6px;margin-bottom:6px;">'+
         '<div style="flex:1;"><b style="font-size:10px;color:#4a3b2c;">Юнит:</b><select id="snipeUnit" style="width:100%;font-size:10px;padding:3px;border:1px solid #c7b299;border-radius:3px;background:#fff;margin-top:1px;"><option value="spear">Копье (18 мин)</option><option value="sword">Меч (22 мин)</option><option value="axe">Топор (18 мин)</option><option value="spy">Лазутчик (9 мин)</option><option value="light">ЛК (10 мин)</option><option value="heavy">ТК (11 мин)</option><option value="ram">Таран (30 мин)</option><option value="catapult">Катапульта (30 мин)</option><option value="knight">Паладин (10 мин)</option><option value="snob">Дворянин (35 мин)</option></select></div>'+
         '<div style="flex:1;"><b style="font-size:10px;color:#4a3b2c;">Тип:</b><select id="snipeType" style="width:100%;font-size:10px;padding:3px;border:1px solid #c7b299;border-radius:3px;background:#fff;margin-top:1px;"><option value="Снайп">Снайп</option><option value="Атака">Атака</option><option value="2 двора">2 двора</option><option value="4 двора">4 двора</option><option value="Раскатка">Раскатка</option><option value="Спам">Спам</option></select></div>'+
         '</div>'+
         
-        // --- ШАБЛОН ВОЙСК ---
         '<div style="background:#f3eadb;padding:5px;border-radius:5px;border:1px solid #e3d2bd;margin-bottom:6px;">'+
         '<div style="font-size:9px;font-weight:600;color:#592c00;margin-bottom:3px;text-align:center;">Мин. шаблон войск:</div>'+
         '<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:3px;font-size:8px;text-align:center;">'+
@@ -122,13 +120,11 @@ javascript:(function(){
         '</div>'+
         '</div>'+
 
-        // --- КНОПКИ УПРАВЛЕНИЯ РАСЧЕТОМ ---
         '<div style="display:flex;gap:5px;margin-bottom:6px;">'+
         '<button id="snipeCalc" style="flex:3;background:linear-gradient(to bottom, #8a4500, #6b3400);color:#fff;border:none;padding:6px;font-weight:bold;cursor:pointer;font-size:10px;border-radius:4px;box-shadow:0 1px 3px rgba(0,0,0,0.1);">⚡ Рассчитать варианты</button>'+
         '<button id="clearCacheBtn" style="flex:1;background:linear-gradient(to bottom, #c62828, #b71c1c);color:#fff;border:none;padding:6px;font-weight:bold;cursor:pointer;font-size:10px;border-radius:4px;box-shadow:0 1px 3px rgba(0,0,0,0.1);" title="Сбросить все">🗑️ Сброс</button>'+
         '</div>'+
         
-        // --- БЛОК РЕЗУЛЬТАТОВ И СОХРАНЕННЫХ МАРШРУТОВ ---
         '<div id="resultsBlockContainer" style="display:flex;gap:6px;margin-bottom:6px;">'+
         '<div style="flex:1;">'+
         '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;">'+
@@ -149,7 +145,6 @@ javascript:(function(){
         '</div>'+
         '</div>'+
         
-        // --- НИЖНЯЯ ПАНЕЛЬ ЭКСПОРТА ---
         '<div style="display:flex;gap:6px;">'+
         '<div style="flex:1;background:#f3eadb;padding:5px;border-radius:5px;border:1px solid #e3d2bd;">'+
         '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;">'+
@@ -173,7 +168,6 @@ javascript:(function(){
     );
     $('body').append(p);
 
-    // --- ПЕРЕКЛЮЧАТЕЛЬ МОБИЛЬНОГО РЕЖИМА ---
     $('#mobileModeToggle').change(function(){
         isMobileMode = $(this).is(':checked');
         $('#twSnipe').css(getPanelStyles(isMobileMode));
@@ -181,7 +175,6 @@ javascript:(function(){
         saveStateToCache();
     });
 
-    // --- ЛОГИКА ПЕРЕМЕЩЕНИЯ ОКНА (DRAG AND DROP) ---
     let isDragging = false, startX, startY, initialLeft, initialTop;
     $('#twSnipeHeader').on('mousedown touchstart', function(e) {
         if ($(e.target).is('span, input, label')) return;
@@ -197,9 +190,8 @@ javascript:(function(){
         e.preventDefault();
     });
 
-    // --- ЛОГИКА ИЗМЕНЕНИЯ РАЗМЕРА МЫШКОЙ ЗА КРАЯ ДЛЯ ПК ---
     let isResizing = false, resizeDir = '', rStartX, rStartY, rStartW, rStartH, rStartL, rStartT;
-    const borderThreshold = 10; // Зона захвата краев в пикселях
+    const borderThreshold = 10;
 
     $('#twSnipe').on('mousemove', function(e) {
         if (isDragging || isResizing) return;
@@ -292,7 +284,6 @@ javascript:(function(){
         isResizing = false;
     });
 
-    // Восстановление данных из кеша
     if(cachedData.targets) $('#snipeCoord').val(cachedData.targets);
     if(cachedData.worldSpeed) $('#worldSpeed').val(cachedData.worldSpeed);
     if(cachedData.attacksPerTarget !== undefined) $('#snipeAttacksPerTarget').val(cachedData.attacksPerTarget);
@@ -431,15 +422,16 @@ javascript:(function(){
             return;
         }
         window.twSavedRoutes.sort((a,b)=>a.sendTimestamp-b.sendTimestamp);
-        let html='',playerName=game_data.player.name,bbTable='[table]\n[**]ID[||]Ник[||]Тип атаки[||]вид[||]откуда[||]куда[||]время отправки[||]время прихода[||]ссылка[/**]\n';
+        let html='',bbTable='[table]\n[**]ID[||]Ник[||]Тип атаки[||]вид[||]откуда[||]куда[||]время отправки[||]время прихода[||]ссылка[/**]\n';
         window.twSavedRoutes.forEach((item,index)=>{
             let idx=index+1;
             let targetDisplay = item.targetName ? item.targetName + ' (' + item.targetCoord + ')' : item.targetCoord;
+            let ownerName = item.ownerName || game_data.player.name;
             html+='<div style="border-bottom:1px solid #eee;padding:2px 0;display:flex;justify-content:space-between;align-items:center;">'+
                   '<span style="font-size:9px;"><b>'+idx+'. '+item.name+'</b> &rarr; <b>'+targetDisplay+'</b> <span style="color:#b22222;">Отпр: '+item.sendTimeStr+'</span></span>'+
                   '<button class="delSavedBtn" data-id="'+item.uniqueId+'" style="background:#d32f2f;color:#fff;border:none;padding:1px 4px;cursor:pointer;font-size:8px;border-radius:2px;">&times;</button>'+
                   '</div>';
-            bbTable+='[*]' + idx + '[|]' + playerName + '[|]' + item.attackType + '[|][unit]' + item.unitKey + '[/unit][|][coord]' + item.coord + '[/coord][|][coord]' + item.targetCoord + '[/coord][|][b]' + item.sendTimeStr + '[/b][|]' + item.arrTimeStr + '[|][url=' + item.placeUrl + ']Rally point[/url][/*]\n';
+            bbTable+='[*]' + idx + '[|]' + ownerName + '[|]' + item.attackType + '[|][unit]' + item.unitKey + '[/unit][|][coord]' + item.coord + '[/coord][|][coord]' + item.targetCoord + '[/coord][|][b]' + item.sendTimeStr + '[/b][|]' + item.arrTimeStr + '[|][url=' + item.placeUrl + ']Rally point[/url][/*]\n';
         });
         bbTable+='[/table]';
         container.html(html);
@@ -522,6 +514,60 @@ javascript:(function(){
         return parseInt(p[0], 10)*3600 + parseInt(p[1], 10)*60 + (p[2] ? parseInt(p[2], 10) : 0);
     }
 
+    // --- ФУНКЦИЯ ЗАГРУЗКИ И ПАРСИНГА БАЗЫ МИРА ДЛЯ ОПРЕДЕЛЕНИЯ НИКОВ ---
+    function fetchWorldDataAndRun(callback) {
+        if (window.twWorldPlayers && window.twWorldVillages) {
+            callback(window.twWorldPlayers, window.twWorldVillages);
+            return;
+        }
+
+        let mapBaseUrl = window.location.origin + '/map/';
+        
+        $.when(
+            $.get(mapBaseUrl + 'player.txt').catch(() => ({responseText: ''})),
+            $.get(mapBaseUrl + 'village.txt').catch(() => ({responseText: ''}))
+        ).done(function(playerRes, villageRes) {
+            let playerText = playerRes[0] || '';
+            let villageText = villageRes[0] || '';
+
+            let playersMap = {};
+            if (playerText) {
+                let pLines = playerText.split('\n');
+                pLines.forEach(line => {
+                    if(!line.trim()) return;
+                    let parts = line.split(',');
+                    if(parts.length >= 2) {
+                        let pId = parts[0].trim();
+                        let pName = decodeURIComponent(parts[1].replace(/\+/g, ' '));
+                        playersMap[pId] = pName;
+                    }
+                });
+            }
+
+            let villagesMap = {};
+            if (villageText) {
+                let vLines = villageText.split('\n');
+                vLines.forEach(line => {
+                    if(!line.trim()) return;
+                    let parts = line.split(',');
+                    if(parts.length >= 6) {
+                        let vX = parseInt(parts[2], 10);
+                        let vY = parseInt(parts[3], 10);
+                        let coordKey = vX + '|' + vY;
+                        let ownerId = parts[4].trim();
+                        let vName = decodeURIComponent(parts[1].replace(/\+/g, ' '));
+                        let ownerName = playersMap[ownerId] || game_data.player.name;
+                        villagesMap[coordKey] = { ownerName: ownerName, villageName: vName };
+                    }
+                });
+            }
+
+            window.twWorldPlayers = playersMap;
+            window.twWorldVillages = villagesMap;
+            callback(playersMap, villagesMap);
+        });
+    }
+
     $('#snipeCalc').click(function(){
         let st=$('#snipeSt'),
             rawText=$('#snipeCoord').val(),
@@ -588,92 +634,111 @@ javascript:(function(){
         let baseSpeedMin = speeds[unitKey] || 30;
         let speedMin = baseSpeedMin / worldSpeed;
 
-        let template={
-            spear:parseInt($('#uSpear').val(),10)||0,
-            sword:parseInt($('#uSword').val(),10)||0,
-            axe:parseInt($('#uAxe').val(),10)||0,
-            spy:parseInt($('#uSpy').val(),10)||0,
-            light:parseInt($('#uLight').val(),10)||0,
-            heavy:parseInt($('#uHeavy').val(),10)||0,
-            ram:parseInt($('#uRam').val(),10)||0,
-            catapult:parseInt($('#uCatapult').val(),10)||0,
-            knight:parseInt($('#uKnight').val(),10)||0,
-            snob:parseInt($('#uSnob').val(),10)||0
-        };
+        st.html('Загрузка карты и расчет...');
 
-        st.html('Расчет...');
-
-        if (isCoordMode) {
-            if(allowedSources.length === 0) {
-                st.html('<span style="color:red;">Пустой список источников!</span>');
-                return;
-            }
-            let sources = allowedSources.map(coord => {
-                let p = coord.split('|');
-                return { id: coord.replace('|', '_'), name: 'Источник', x: parseInt(p[0], 10), y: parseInt(p[1], 10), coord: coord };
+        fetchWorldDataAndRun(function(playersMap, villagesMap) {
+            // Обогащаем цели правильными никами владельцев из базы мира
+            targets.forEach(t => {
+                if (villagesMap[t.coord]) {
+                    t.ownerName = villagesMap[t.coord].ownerName;
+                    if (!t.name || t.name === '') {
+                        t.name = villagesMap[t.coord].villageName;
+                    }
+                } else {
+                    t.ownerName = game_data.player.name;
+                }
             });
-            
-            if ($('#skipAlreadySavedSources').is(':checked') && window.twSavedRoutes && window.twSavedRoutes.length > 0) {
-                let savedSourceCoords = new Set(window.twSavedRoutes.map(r => r.coord));
-                sources = sources.filter(s => !savedSourceCoords.has(s.coord));
-            }
 
-            processPairsAndRender(sources, targets, arrivalTimes, speedMin, st, isAutoMatch, attackType, unitKey, attacksPerTarget, attacksPerSource);
-            return;
-        }
-
-        let sfx=game_data.player.sitter>0?'game.php?t='+game_data.player.id+'&':'game.php?';
-        $.get(sfx+'screen=overview_villages&mode=units&page=-1&',function(page){
-            let rows=$(page).find('tr').filter(function(){return $(this).find('.quickedit-vn').length>0;});
-            let sources=[];
-            rows.each(function(){
-                let vn=$(this).find('.quickedit-vn');
-                if(!vn.length)return;
-                let name=vn.text().replace(/\(\d{3}\|\d{3}\)/g,'').replace(/K\d+/g,'').trim().split('\n')[0].trim()||"Деревня";
-                let vId=(vn.find('a').attr('href').match(/village=(\d+)/)||[])[1],
-                    vCoordsMatch=$(this).text().match(/\d{3}\|\d{3}/);
-                if(!vCoordsMatch||!vId)return;
-                let curCoordStr=vCoordsMatch[0];
-                if(allowedSources.length>0&&!allowedSources.includes(curCoordStr))return;
-                let cParts=curCoordStr.split('|'),vX=parseInt(cParts[0],10),vY=parseInt(cParts[1],10),tds=$(this).find('td');
+            if (isCoordMode) {
+                if(allowedSources.length === 0) {
+                    st.html('<span style="color:red;">Пустой список источников!</span>');
+                    return;
+                }
+                let sources = allowedSources.map(coord => {
+                    let p = coord.split('|');
+                    let sOwner = (villagesMap[coord] ? villagesMap[coord].ownerName : 'Источник');
+                    return { id: coord.replace('|', '_'), name: sOwner, x: parseInt(p[0], 10), y: parseInt(p[1], 10), coord: coord };
+                });
                 
-                let uData={
-                    spear:parseUnitVal(tds.filter('.unit-item-spear').text()||tds.eq(2).text()),
-                    sword:parseUnitVal(tds.filter('.unit-item-sword').text()||tds.eq(3).text()),
-                    axe:parseUnitVal(tds.filter('.unit-item-axe').text()||tds.eq(4).text()),
-                    spy:parseUnitVal(tds.filter('.unit-item-spy').text()||tds.eq(5).text()),
-                    light:parseUnitVal(tds.filter('.unit-item-light').text()||tds.eq(6).text()),
-                    heavy:parseUnitVal(tds.filter('.unit-item-heavy').text()||tds.eq(7).text()),
-                    ram:parseUnitVal(tds.filter('.unit-item-ram').text()||tds.eq(8).text()),
-                    catapult:parseUnitVal(tds.filter('.unit-item-catapult').text()||tds.eq(9).text()),
-                    knight:parseUnitVal(tds.filter('.unit-item-knight').text()||tds.eq(10).text()),
-                    snob:parseUnitVal(tds.filter('.unit-item-snob').text()||tds.eq(11).text())
+                if ($('#skipAlreadySavedSources').is(':checked') && window.twSavedRoutes && window.twSavedRoutes.length > 0) {
+                    let savedSourceCoords = new Set(window.twSavedRoutes.map(r => r.coord));
+                    sources = sources.filter(s => !savedSourceCoords.has(s.coord));
+                }
+
+                processPairsAndRender(sources, targets, arrivalTimes, speedMin, st, isAutoMatch, attackType, unitKey, attacksPerTarget, attacksPerSource);
+                return;
+            }
+
+            // --- АВТОМАТИЧЕСКОЕ ОПРЕДЕЛЕНИЕ ПРИСМОТРА ИЗ АДРЕСНОЙ СТРОКИ БРАУЗЕРА ---
+            let urlParams = new URLSearchParams(window.location.search);
+            let sitterParam = urlParams.get('t') ? 't=' + urlParams.get('t') + '&' : '';
+            let sfx = 'game.php?' + sitterParam;
+
+            $.get(sfx+'screen=overview_villages&mode=units&page=-1&',function(page){
+                let rows=$(page).find('tr').filter(function(){return $(this).find('.quickedit-vn').length>0;});
+                let sources=[];
+                rows.each(function(){
+                    let vn=$(this).find('.quickedit-vn');
+                    if(!vn.length)return;
+                    let name=vn.text().replace(/\(\d{3}\|\d{3}\)/g,'').replace(/K\d+/g,'').trim().split('\n')[0].trim()||"Деревня";
+                    let vId=(vn.find('a').attr('href').match(/village=(\d+)/)||[])[1],
+                        vCoordsMatch=$(this).text().match(/\d{3}\|\d{3}/);
+                    if(!vCoordsMatch||!vId)return;
+                    let curCoordStr=vCoordsMatch[0];
+                    if(allowedSources.length>0&&!allowedSources.includes(curCoordStr))return;
+                    let cParts=curCoordStr.split('|'),vX=parseInt(cParts[0],10),vY=parseInt(cParts[1],10),tds=$(this).find('td');
+                    
+                    let uData={
+                        spear:parseUnitVal(tds.filter('.unit-item-spear').text()||tds.eq(2).text()),
+                        sword:parseUnitVal(tds.filter('.unit-item-sword').text()||tds.eq(3).text()),
+                        axe:parseUnitVal(tds.filter('.unit-item-axe').text()||tds.eq(4).text()),
+                        spy:parseUnitVal(tds.filter('.unit-item-spy').text()||tds.eq(5).text()),
+                        light:parseUnitVal(tds.filter('.unit-item-light').text()||tds.eq(6).text()),
+                        heavy:parseUnitVal(tds.filter('.unit-item-heavy').text()||tds.eq(7).text()),
+                        ram:parseUnitVal(tds.filter('.unit-item-ram').text()||tds.eq(8).text()),
+                        catapult:parseUnitVal(tds.filter('.unit-item-catapult').text()||tds.eq(9).text()),
+                        knight:parseUnitVal(tds.filter('.unit-item-knight').text()||tds.eq(10).text()),
+                        snob:parseUnitVal(tds.filter('.unit-item-snob').text()||tds.eq(11).text())
+                    };
+                    sources.push({id:vId,name:name,x:vX,y:vY,coord:curCoordStr,units:uData});
+                });
+
+                if(!sources.length){
+                    st.html('<span style="color:red;">Источники не найдены!</span>');
+                    return;
+                }
+
+                if ($('#skipAlreadySavedSources').is(':checked') && window.twSavedRoutes && window.twSavedRoutes.length > 0) {
+                    let savedSourceCoords = new Set(window.twSavedRoutes.map(r => r.coord));
+                    sources = sources.filter(s => !savedSourceCoords.has(s.coord));
+                }
+
+                let template={
+                    spear:parseInt($('#uSpear').val(),10)||0,
+                    sword:parseInt($('#uSword').val(),10)||0,
+                    axe:parseInt($('#uAxe').val(),10)||0,
+                    spy:parseInt($('#uSpy').val(),10)||0,
+                    light:parseInt($('#uLight').val(),10)||0,
+                    heavy:parseInt($('#uHeavy').val(),10)||0,
+                    ram:parseInt($('#uRam').val(),10)||0,
+                    catapult:parseInt($('#uCatapult').val(),10)||0,
+                    knight:parseInt($('#uKnight').val(),10)||0,
+                    snob:parseInt($('#uSnob').val(),10)||0
                 };
-                sources.push({id:vId,name:name,x:vX,y:vY,coord:curCoordStr,units:uData});
+
+                let validSources = sources.filter(v => {
+                    for(let u in template){ if(v.units[u] < template[u]) return false; }
+                    if(v.units[unitKey] < template[unitKey]) return false;
+                    return true;
+                });
+
+                if(!validSources.length){
+                    st.html('<span style="color:red;">Нет деревень под шаблон!</span>');
+                    return;
+                }
+
+                processPairsAndRender(validSources, targets, arrivalTimes, speedMin, st, isAutoMatch, attackType, unitKey, attacksPerTarget, attacksPerSource);
             });
-
-            if(!sources.length){
-                st.html('<span style="color:red;">Источники не найдены!</span>');
-                return;
-            }
-
-            if ($('#skipAlreadySavedSources').is(':checked') && window.twSavedRoutes && window.twSavedRoutes.length > 0) {
-                let savedSourceCoords = new Set(window.twSavedRoutes.map(r => r.coord));
-                sources = sources.filter(s => !savedSourceCoords.has(s.coord));
-            }
-
-            let validSources = sources.filter(v => {
-                for(let u in template){ if(v.units[u] < template[u]) return false; }
-                if(v.units[unitKey] < template[unitKey]) return false;
-                return true;
-            });
-
-            if(!validSources.length){
-                st.html('<span style="color:red;">Нет деревень под шаблон!</span>');
-                return;
-            }
-
-            processPairsAndRender(validSources, targets, arrivalTimes, speedMin, st, isAutoMatch, attackType, unitKey, attacksPerTarget, attacksPerSource);
         });
     });
 
@@ -741,17 +806,20 @@ javascript:(function(){
         finalRoutes.sort((a,b)=>a.sendDate-b.sendDate);
         window.lastCalculatedRoutes = [];
         
+        let urlParams = new URLSearchParams(window.location.search);
+        let sitterParam = urlParams.get('t') ? 't=' + urlParams.get('t') + '&' : '';
+
         finalRoutes.forEach(item=>{
             let v=item.source,t=item.target;
             let sd=item.sendDate, ad=new Date(item.arrTime);
             let sendTimeStr=('0'+sd.getDate()).slice(-2)+'.'+('0'+(sd.getMonth()+1)).slice(-2)+'.'+sd.getFullYear()+' '+('0'+sd.getHours()).slice(-2)+':'+('0'+sd.getMinutes()).slice(-2)+':'+('0'+sd.getSeconds()).slice(-2);
             let arrTimeStr=('0'+ad.getDate()).slice(-2)+'.'+('0'+(ad.getMonth()+1)).slice(-2)+'.'+ad.getFullYear()+' '+('0'+ad.getHours()).slice(-2)+':'+('0'+ad.getMinutes()).slice(-2)+':'+('0'+ad.getSeconds()).slice(-2);
             
-            let placeUrl=window.location.origin+window.location.pathname.substring(0,window.location.pathname.lastIndexOf('/')+1)+'game.php?'+(game_data.player.sitter>0?'t='+game_data.player.id+'&':'')+'village='+v.id+'&screen=place&x='+t.x+'&y='+t.y;
+            let placeUrl = window.location.origin + window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1) + 'game.php?' + sitterParam + 'village=' + v.id + '&screen=place&x=' + t.x + '&y=' + t.y;
 
             let routeObj={
                 uniqueId:'r_'+v.id+'_'+t.coord.replace('|','_')+'_'+item.arrTime+'_'+Math.floor(Math.random()*1000),
-                name:v.name,coord:v.coord,targetCoord:t.coord,targetName:t.name,attackType:attackType,
+                name:v.name,coord:v.coord,targetCoord:t.coord,targetName:t.name,ownerName:t.ownerName || game_data.player.name,attackType:attackType,
                 unitKey:unitKey,sendTimestamp:sd.getTime(),sendTimeStr:sendTimeStr,arrTimeStr:arrTimeStr,placeUrl:placeUrl
             };
             window.lastCalculatedRoutes.push(routeObj);
@@ -771,7 +839,7 @@ javascript:(function(){
                 let targetDisplay = routeObj.targetName ? routeObj.targetName + ' (' + routeObj.targetCoord + ')' : routeObj.targetCoord;
                 
                 html+='<div style="border-bottom:1px solid #e3d2bd;padding:3px 0;display:flex;justify-content:space-between;align-items:center;">'+
-                      '<span style="font-size:9px;"><b>'+routeObj.name+'</b> &rarr; <b>'+targetDisplay+'</b><br><span style="color:#b22222;">Отпр: '+routeObj.sendTimeStr+'</span></span>'+
+                      '<span style="font-size:9px;"><b>'+routeObj.name+'</b> &rarr; <b>'+targetDisplay+'</b> ('+routeObj.ownerName+')<br><span style="color:#b22222;">Отпр: '+routeObj.sendTimeStr+'</span></span>'+
                       '<div style="display:flex;gap:3px;flex-shrink:0;">'+
                       '<button class="saveOneRoute" data-route="'+safeRouteData+'" style="background:#2e7d32;color:#fff;border:none;padding:2px 4px;cursor:pointer;font-size:8px;font-weight:bold;border-radius:2px;">Сохр.</button>'+
                       '<a href="'+routeObj.placeUrl+'" target="_blank" style="background:#8a4500;color:#fff;text-decoration:none;padding:2px 4px;border-radius:2px;font-size:8px;font-weight:bold;display:inline-block;">Перейти</a>'+
