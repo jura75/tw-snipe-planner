@@ -16,6 +16,7 @@ javascript:(function(){
     window.twSavedRoutes = cachedData.savedRoutes || [];
     window.lastCalculatedRoutes = cachedData.lastCalculatedRoutes || [];
     let isMobileMode = cachedData.mobileMode !== undefined ? cachedData.mobileMode : false;
+    let hasArchers = cachedData.hasArchers !== undefined ? cachedData.hasArchers : false;
     
     window.twWorldPlayers = window.twWorldPlayers || null;
     window.twWorldVillages = window.twWorldVillages || null;
@@ -72,6 +73,7 @@ javascript:(function(){
         '</div>'+
 
         '<div style="margin-bottom:6px;display:flex;flex-wrap:wrap;gap:8px;background:#ede1cc;padding:5px 8px;border-radius:5px;border:1px solid #d9c7ad;align-items:center;">'+
+        '<div style="display:flex;align-items:center;"><input type="checkbox" id="worldArchersToggle" '+(hasArchers?'checked':'')+ ' style="margin-right:4px;cursor:pointer;"><label for="worldArchersToggle" style="font-size:9px;font-weight:600;color:#592c00;cursor:pointer;">🏹 Мир с луками</label></div>'+
         '<div style="display:flex;align-items:center;"><input type="checkbox" id="snipeAutoMatch" checked style="margin-right:4px;cursor:pointer;"><label for="snipeAutoMatch" style="font-size:9px;font-weight:600;color:#592c00;cursor:pointer;">Автоподбор</label></div>'+
         '<div style="display:flex;align-items:center;"><input type="checkbox" id="snipeCoordMode" style="margin-right:4px;cursor:pointer;"><label for="snipeCoordMode" style="font-size:9px;font-weight:600;color:#592c00;cursor:pointer;">Строго по списку</label></div>'+
         '<div style="display:flex;align-items:center;"><input type="checkbox" id="skipAlreadySavedTargets" checked style="margin-right:4px;cursor:pointer;"><label for="skipAlreadySavedTargets" style="font-size:9px;font-weight:600;color:#592c00;cursor:pointer;">Без дублей целей</label></div>'+
@@ -98,23 +100,13 @@ javascript:(function(){
         '</div>'+
 
         '<div style="display:flex;gap:6px;margin-bottom:6px;">'+
-        '<div style="flex:1;"><b style="font-size:10px;color:#4a3b2c;">Юнит:</b><select id="snipeUnit" style="width:100%;font-size:10px;padding:3px;border:1px solid #c7b299;border-radius:3px;background:#fff;margin-top:1px;"><option value="spear">Копье (18 мин)</option><option value="sword">Меч (22 мин)</option><option value="axe">Топор (18 мин)</option><option value="spy">Лазутчик (9 мин)</option><option value="light">ЛК (10 мин)</option><option value="heavy">ТК (11 мин)</option><option value="ram">Таран (30 мин)</option><option value="catapult">Катапульта (30 мин)</option><option value="knight">Паладин (10 мин)</option><option value="snob">Дворянин (35 мин)</option></select></div>'+
+        '<div style="flex:1;"><b style="font-size:10px;color:#4a3b2c;">Юнит:</b><select id="snipeUnit" style="width:100%;font-size:10px;padding:3px;border:1px solid #c7b299;border-radius:3px;background:#fff;margin-top:1px;"></select></div>'+
         '<div style="flex:1;"><b style="font-size:10px;color:#4a3b2c;">Тип:</b><select id="snipeType" style="width:100%;font-size:10px;padding:3px;border:1px solid #c7b299;border-radius:3px;background:#fff;margin-top:1px;"><option value="Снайп">Снайп</option><option value="Атака">Атака</option><option value="2 двора">2 двора</option><option value="4 двора">4 двора</option><option value="Раскатка">Раскатка</option><option value="Спам">Спам</option></select></div>'+
         '</div>'+
         
         '<div style="background:#f3eadb;padding:5px;border-radius:5px;border:1px solid #e3d2bd;margin-bottom:6px;">'+
         '<div style="font-size:9px;font-weight:600;color:#592c00;margin-bottom:3px;text-align:center;">Мин. шаблон войск:</div>'+
-        '<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:3px;font-size:8px;text-align:center;">'+
-        '<div>Коп<br><input type="number" id="uSpear" value="0" style="width:100%;text-align:center;padding:1px;border:1px solid #c7b299;border-radius:2px;background:#fff;"></div>'+
-        '<div>Меч<br><input type="number" id="uSword" value="0" style="width:100%;text-align:center;padding:1px;border:1px solid #c7b299;border-radius:2px;background:#fff;"></div>'+
-        '<div>Топ<br><input type="number" id="uAxe" value="0" style="width:100%;text-align:center;padding:1px;border:1px solid #c7b299;border-radius:2px;background:#fff;"></div>'+
-        '<div>Разв<br><input type="number" id="uSpy" value="0" style="width:100%;text-align:center;padding:1px;border:1px solid #c7b299;border-radius:2px;background:#fff;"></div>'+
-        '<div>ЛК<br><input type="number" id="uLight" value="0" style="width:100%;text-align:center;padding:1px;border:1px solid #c7b299;border-radius:2px;background:#fff;"></div>'+
-        '<div>ТК<br><input type="number" id="uHeavy" value="0" style="width:100%;text-align:center;padding:1px;border:1px solid #c7b299;border-radius:2px;background:#fff;"></div>'+
-        '<div>Таран<br><input type="number" id="uRam" value="0" style="width:100%;text-align:center;padding:1px;border:1px solid #c7b299;border-radius:2px;background:#fff;"></div>'+
-        '<div>Ката<br><input type="number" id="uCatapult" value="0" style="width:100%;text-align:center;padding:1px;border:1px solid #c7b299;border-radius:2px;background:#fff;"></div>'+
-        '<div>Пал<br><input type="number" id="uKnight" value="0" style="width:100%;text-align:center;padding:1px;border:1px solid #c7b299;border-radius:2px;background:#fff;"></div>'+
-        '<div>Двор<br><input type="number" id="uSnob" value="0" style="width:100%;text-align:center;padding:1px;border:1px solid #c7b299;border-radius:2px;background:#fff;"></div>'+
+        '<div id="templateGridContainer" style="display:grid;grid-template-columns:repeat(5,1fr);gap:3px;font-size:8px;text-align:center;">'+
         '</div>'+
         '</div>'+
 
@@ -165,6 +157,64 @@ javascript:(function(){
         '</div>'
     );
     $('body').append(p);
+
+    let unitsConfigWithoutArchers = [
+        {key: 'spear', name: 'Копье (18 мин)', short: 'Коп', speed: 18},
+        {key: 'sword', name: 'Меч (22 мин)', short: 'Меч', speed: 22},
+        {key: 'axe', name: 'Топор (18 мин)', short: 'Топ', speed: 18},
+        {key: 'spy', name: 'Лазутчик (9 мин)', short: 'Разв', speed: 9},
+        {key: 'light', name: 'ЛК (10 мин)', short: 'ЛК', speed: 10},
+        {key: 'heavy', name: 'ТК (11 мин)', short: 'ТК', speed: 11},
+        {key: 'ram', name: 'Таран (30 мин)', short: 'Таран', speed: 30},
+        {key: 'catapult', name: 'Катапульта (30 мин)', short: 'Ката', speed: 30},
+        {key: 'knight', name: 'Паладин (10 мин)', short: 'Пал', speed: 10},
+        {key: 'snob', name: 'Дворянин (35 мин)', short: 'Двор', speed: 35}
+    ];
+
+    let unitsConfigWithArchers = [
+        {key: 'spear', name: 'Копье (18 мин)', short: 'Коп', speed: 18},
+        {key: 'sword', name: 'Меч (22 мин)', short: 'Меч', speed: 22},
+        {key: 'axe', name: 'Топор (18 мин)', short: 'Топ', speed: 18},
+        {key: 'archer', name: 'Лучник (18 мин)', short: 'Лук', speed: 18},
+        {key: 'spy', name: 'Лазутчик (9 мин)', short: 'Разв', speed: 9},
+        {key: 'light', name: 'ЛК (10 мин)', short: 'ЛК', speed: 10},
+        {key: 'marcher', name: 'Кавалерист лучник (10 мин)', short: 'КЛ', speed: 10},
+        {key: 'heavy', name: 'ТК (11 мин)', short: 'ТК', speed: 11},
+        {key: 'ram', name: 'Таран (30 мин)', short: 'Таран', speed: 30},
+        {key: 'catapult', name: 'Катапульта (30 мин)', short: 'Ката', speed: 30},
+        {key: 'knight', name: 'Паладин (10 мин)', short: 'Пал', speed: 10},
+        {key: 'snob', name: 'Дворянин (35 мин)', short: 'Двор', speed: 35}
+    ];
+
+    function rebuildDynamicUI() {
+        let currentUnitVal = $('#snipeUnit').val();
+        let currentArchers = $('#worldArchersToggle').is(':checked');
+        let cfg = currentArchers ? unitsConfigWithArchers : unitsConfigWithoutArchers;
+
+        let unitSelect = $('#snipeUnit');
+        unitSelect.empty();
+        cfg.forEach(u => {
+            unitSelect.append('<option value="'+u.key+'">'+u.name+'</option>');
+        });
+        if(currentUnitVal && unitSelect.find('option[value="'+currentUnitVal+'"]').length > 0) {
+            unitSelect.val(currentUnitVal);
+        }
+
+        let grid = $('#templateGridContainer');
+        grid.empty();
+        cfg.forEach(u => {
+            let existingVal = cachedData.units && cachedData.units[u.key] !== undefined ? cachedData.units[u.key] : 0;
+            grid.append('<div>'+u.short+'<br><input type="number" id="u'+u.key.charAt(0).toUpperCase()+u.key.slice(1)+'" value="'+existingVal+'" style="width:100%;text-align:center;padding:1px;border:1px solid #c7b299;border-radius:2px;background:#fff;"></div>');
+        });
+    }
+
+    rebuildDynamicUI();
+
+    $('#worldArchersToggle').change(function(){
+        hasArchers = $(this).is(':checked');
+        rebuildDynamicUI();
+        saveStateToCache();
+    });
 
     $('#mobileModeToggle').change(function(){
         isMobileMode = $(this).is(':checked');
@@ -312,11 +362,27 @@ javascript:(function(){
     
     if(cachedData.units) {
         for(let u in cachedData.units) {
-            $('#u'+u.charAt(0).toUpperCase()+u.slice(1)).val(cachedData.units[u]);
+            let field = $('#u'+u.charAt(0).toUpperCase()+u.slice(1));
+            if(field.length) field.val(cachedData.units[u]);
         }
     }
 
     function saveStateToCache() {
+        let unitsObj = {
+            spear: $('#uSpear').val() || 0,
+            sword: $('#uSword').val() || 0,
+            axe: $('#uAxe').val() || 0,
+            spy: $('#uSpy').val() || 0,
+            light: $('#uLight').val() || 0,
+            heavy: $('#uHeavy').val() || 0,
+            ram: $('#uRam').val() || 0,
+            catapult: $('#uCatapult').val() || 0,
+            knight: $('#uKnight').val() || 0,
+            snob: $('#uSnob').val() || 0
+        };
+        if($('#uArcher').length) unitsObj.archer = $('#uArcher').val() || 0;
+        if($('#uMarcher').length) unitsObj.marcher = $('#uMarcher').val() || 0;
+
         let state = {
             targets: $('#snipeCoord').val(),
             worldSpeed: $('#worldSpeed').val(),
@@ -338,18 +404,8 @@ javascript:(function(){
             skipAlreadySavedTargets: $('#skipAlreadySavedTargets').is(':checked'),
             skipAlreadySavedSources: $('#skipAlreadySavedSources').is(':checked'),
             mobileMode: $('#mobileModeToggle').is(':checked'),
-            units: {
-                spear: $('#uSpear').val(),
-                sword: $('#uSword').val(),
-                axe: $('#uAxe').val(),
-                spy: $('#uSpy').val(),
-                light: $('#uLight').val(),
-                heavy: $('#uHeavy').val(),
-                ram: $('#uRam').val(),
-                catapult: $('#uCatapult').val(),
-                knight: $('#uKnight').val(),
-                snob: $('#uSnob').val()
-            },
+            hasArchers: $('#worldArchersToggle').is(':checked'),
+            units: unitsObj,
             savedRoutes: window.twSavedRoutes,
             lastCalculatedRoutes: window.lastCalculatedRoutes
         };
@@ -407,7 +463,7 @@ javascript:(function(){
         return parseInt(targetStr.replace(/\D/g,''),10)||0;
     };
 
-    let speeds={spear:18,sword:22,axe:18,spy:9,light:10,heavy:11,ram:30,catapult:30,knight:10,snob:35};
+    let speeds={spear:18,sword:22,axe:18,archer:18,spy:9,light:10,marcher:10,heavy:11,ram:30,catapult:30,knight:10,snob:35};
 
     function updateExportAndUI(){
         let container=$('#savedListContainer'),countSpan=$('#savedCount');
@@ -674,10 +730,11 @@ javascript:(function(){
             $.get(sfx+'screen=overview_villages&mode=units&page=-1&',function(page){
                 let rows=$(page).find('tr').filter(function(){return $(this).find('.quickedit-vn').length>0;});
                 let sources=[];
+                let archersActive = $('#worldArchersToggle').is(':checked');
                 rows.each(function(){
                     let vn=$(this).find('.quickedit-vn');
                     if(!vn.length)return;
-                    let name=vn.text().replace(/\(\d{3}\|\d{3}\)/g,'').replace(/K\d+/g,'').trim().split('\n')[0].trim()||"Деревня";
+                    let name=vn.text().replace(/\(\d{3}\|\d{3}\)/g, '').replace(/K\d+/g, '').trim().split('\n')[0].trim()||"Деревня";
                     let vId=(vn.find('a').attr('href').match(/village=(\d+)/)||[])[1],
                         vCoordsMatch=$(this).text().match(/\d{3}\|\d{3}/);
                     if(!vCoordsMatch||!vId)return;
@@ -687,18 +744,32 @@ javascript:(function(){
                     
                     let sOwner = (villagesMap[curCoordStr] ? villagesMap[curCoordStr].ownerName : game_data.player.name);
 
-                    let uData={
-                        spear:parseUnitVal(tds.filter('.unit-item-spear').text()||tds.eq(2).text()),
-                        sword:parseUnitVal(tds.filter('.unit-item-sword').text()||tds.eq(3).text()),
-                        axe:parseUnitVal(tds.filter('.unit-item-axe').text()||tds.eq(4).text()),
-                        spy:parseUnitVal(tds.filter('.unit-item-spy').text()||tds.eq(5).text()),
-                        light:parseUnitVal(tds.filter('.unit-item-light').text()||tds.eq(6).text()),
-                        heavy:parseUnitVal(tds.filter('.unit-item-heavy').text()||tds.eq(7).text()),
-                        ram:parseUnitVal(tds.filter('.unit-item-ram').text()||tds.eq(8).text()),
-                        catapult:parseUnitVal(tds.filter('.unit-item-catapult').text()||tds.eq(9).text()),
-                        knight:parseUnitVal(tds.filter('.unit-item-knight').text()||tds.eq(10).text()),
-                        snob:parseUnitVal(tds.filter('.unit-item-snob').text()||tds.eq(11).text())
+                    let uData = {
+                        spear: parseUnitVal(tds.filter('.unit-item-spear').text() || tds.eq(2).text()),
+                        sword: parseUnitVal(tds.filter('.unit-item-sword').text() || tds.eq(3).text()),
+                        axe: parseUnitVal(tds.filter('.unit-item-axe').text() || tds.eq(4).text())
                     };
+
+                    if(archersActive) {
+                        uData.archer = parseUnitVal(tds.filter('.unit-item-archer').text() || tds.eq(5).text());
+                        uData.spy = parseUnitVal(tds.filter('.unit-item-spy').text() || tds.eq(6).text());
+                        uData.light = parseUnitVal(tds.filter('.unit-item-light').text() || tds.eq(7).text());
+                        uData.marcher = parseUnitVal(tds.filter('.unit-item-marcher').text() || tds.eq(8).text());
+                        uData.heavy = parseUnitVal(tds.filter('.unit-item-heavy').text() || tds.eq(9).text());
+                        uData.ram = parseUnitVal(tds.filter('.unit-item-ram').text() || tds.eq(10).text());
+                        uData.catapult = parseUnitVal(tds.filter('.unit-item-catapult').text() || tds.eq(11).text());
+                        uData.knight = parseUnitVal(tds.filter('.unit-item-knight').text() || tds.eq(12).text());
+                        uData.snob = parseUnitVal(tds.filter('.unit-item-snob').text() || tds.eq(13).text());
+                    } else {
+                        uData.spy = parseUnitVal(tds.filter('.unit-item-spy').text() || tds.eq(5).text());
+                        uData.light = parseUnitVal(tds.filter('.unit-item-light').text() || tds.eq(6).text());
+                        uData.heavy = parseUnitVal(tds.filter('.unit-item-heavy').text() || tds.eq(7).text());
+                        uData.ram = parseUnitVal(tds.filter('.unit-item-ram').text() || tds.eq(8).text());
+                        uData.catapult = parseUnitVal(tds.filter('.unit-item-catapult').text() || tds.eq(9).text());
+                        uData.knight = parseUnitVal(tds.filter('.unit-item-knight').text() || tds.eq(10).text());
+                        uData.snob = parseUnitVal(tds.filter('.unit-item-snob').text() || tds.eq(11).text());
+                    }
+
                     sources.push({id:vId,name:name,ownerName:sOwner,x:vX,y:vY,coord:curCoordStr,units:uData});
                 });
 
@@ -712,22 +783,26 @@ javascript:(function(){
                     sources = sources.filter(s => !savedSourceCoords.has(s.coord));
                 }
 
-                let template={
-                    spear:parseInt($('#uSpear').val(),10)||0,
-                    sword:parseInt($('#uSword').val(),10)||0,
-                    axe:parseInt($('#uAxe').val(),10)||0,
-                    spy:parseInt($('#uSpy').val(),10)||0,
-                    light:parseInt($('#uLight').val(),10)||0,
-                    heavy:parseInt($('#uHeavy').val(),10)||0,
-                    ram:parseInt($('#uRam').val(),10)||0,
-                    catapult:parseInt($('#uCatapult').val(),10)||0,
-                    knight:parseInt($('#uKnight').val(),10)||0,
-                    snob:parseInt($('#uSnob').val(),10)||0
+                let template = {
+                    spear: parseInt($('#uSpear').val(), 10) || 0,
+                    sword: parseInt($('#uSword').val(), 10) || 0,
+                    axe: parseInt($('#uAxe').val(), 10) || 0,
+                    spy: parseInt($('#uSpy').val(), 10) || 0,
+                    light: parseInt($('#uLight').val(), 10) || 0,
+                    heavy: parseInt($('#uHeavy').val(), 10) || 0,
+                    ram: parseInt($('#uRam').val(), 10) || 0,
+                    catapult: parseInt($('#uCatapult').val(), 10) || 0,
+                    knight: parseInt($('#uKnight').val(), 10) || 0,
+                    snob: parseInt($('#uSnob').val(), 10) || 0
                 };
+                if(archersActive) {
+                    template.archer = parseInt($('#uArcher').val(), 10) || 0;
+                    template.marcher = parseInt($('#uMarcher').val(), 10) || 0;
+                }
 
                 let validSources = sources.filter(v => {
-                    for(let u in template){ if(v.units[u] < template[u]) return false; }
-                    if(v.units[unitKey] < template[unitKey]) return false;
+                    for(let u in template){ if((v.units[u] || 0) < template[u]) return false; }
+                    if((v.units[unitKey] || 0) < (template[unitKey] || 0)) return false;
                     return true;
                 });
 
@@ -842,7 +917,6 @@ javascript:(function(){
                 let safeRouteData=JSON.stringify(routeObj).replace(/"/g,'&quot;');
                 let targetDisplay = routeObj.targetName ? routeObj.targetName + ' (' + routeObj.targetCoord + ')' : routeObj.targetCoord;
                 
-                // ИСПРАВЛЕНИЕ: Добавлены координаты источника сразу после его названия
                 html+='<div style="border-bottom:1px solid #e3d2bd;padding:3px 0;display:flex;justify-content:space-between;align-items:center;">'+
                       '<span style="font-size:9px;"><b>'+routeObj.name+' ('+routeObj.coord+')</b> &rarr; <b>'+targetDisplay+'</b> ('+routeObj.sourceOwnerName+')<br><span style="color:#b22222;">Отпр: '+routeObj.sendTimeStr+'</span></span>'+
                       '<div style="display:flex;gap:3px;flex-shrink:0;">'+
